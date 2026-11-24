@@ -1,0 +1,116 @@
+You are preparing study content for Stride, an exam-prep study app. Your reply will be imported into the app, so it must be a single JSON "course file" in the exact format described below.
+
+COURSE: {{COURSE}}
+CATEGORY: {{CATEGORY}}
+{{TOPICS}}
+
+WHAT I WILL GIVE YOU
+- The syllabus for this course. This is required.
+- Optionally, study materials (textbook chapters, notes) and past question papers. Text copied from the Stride app may contain markers like [FIGURE i1abc2de: caption] where a picture was in the original document.
+
+RULES
+
+1. The syllabus decides the topics. Make one topic for each topic in the syllabus, in syllabus order. Merge tiny sub-points into their topic. Aim for 6 to 40 topics.
+   Leave out anything in the materials that is not in the syllabus. The only exception is background that a syllabus topic depends on (for example a formula needed to explain it): that may appear inside that topic's lesson, never as a topic of its own.
+
+2. Use the materials first. Where the materials cover a topic, take facts, wording and examples from them, and set "source": "materials" on those facts and worked examples.
+
+3. Fill the gaps. Where the materials do not cover a topic, or part of one, write it yourself from standard textbook knowledge for {{CATEGORY}} (search the web if you can), at the standard of the real exam, and set "source": "ai". Never leave a syllabus topic without lessons.
+
+4. Be correct. Double-check every fact, every answer and every step of arithmetic. If you are unsure of something, leave it out rather than guess.
+
+5. Every topic has exactly 3 levels, each clearly harder than the one before, never repeating earlier facts:
+   - Level 1, easy: core definitions and basic ideas.
+   - Level 2, medium: applying ideas and connecting concepts.
+   - Level 3, hard: exam-standard questions and tricky distinctions.
+
+6. Each level has exactly 3 facts. Each fact has:
+   - "t": the fact in 1 to 2 sentences.
+   - "why": an explanation of why it is true or how it works, in 2 to 4 sentences, for a secondary-school student.
+   - "ex": a practical example, everyday scenario or exam-style illustration, or "" if none would help.
+   - "q": exactly 2 questions, answerable from the fact and its explanation.
+   - "source": "materials" or "ai" (see rules 2 and 3).
+   - "img": a picture id (see rule 11) or null.
+
+7. Questions. Each question has "k", "d" ("easy", "medium" or "hard"), "p" (the question) and "sol" (1 to 3 sentences on why the right answer is right). Kinds:
+   - "mc": multiple choice with exactly 4 options in "o", and "a" = the 0-based index of the correct option (0 = first option). Vary which position is correct.
+   - "tf": true or false, with "a" = true or false.
+   - "in" (level 3 only): a short typed answer of 1 to 3 words, with "a" = a list of accepted lowercase answers. No LaTeX in typed answers.
+
+8. Calculation topics. If a topic involves calculations or numerical problem solving, set "calc": true and give every level 1 or 2 worked examples in "worked" (1 if the method is simple, 2 if it is harder). Each worked example has:
+   - "p": the problem with all data given.
+   - "steps": short steps showing the formula, every substitution and the arithmetic.
+   - "ans": the final answer with units.
+   - "why": why the answer is correct (a sense check or unit check).
+   - "mistakes": 2 to 3 common mistakes students make on this kind of problem.
+   - "q": 1 to 3 practice questions like it, all "mc", each with "d", "p", "o", "a", "steps" (its worked solution) and "sol".
+   - "source" and "img" as for facts.
+   For other topics set "calc": false and "worked": [].
+
+9. "sessions": how many 15-minute study sessions a typical student needs to learn and practise the topic to exam standard, from 1 to 12. More for long, technical or calculation-heavy topics.
+
+10. Past questions (only if I gave you past question papers). Copy every multiple-choice question exactly as written, without rewording. Put the options in "o" without their letter labels.
+   - "a": the 0-based index of the correct option. Take it from the paper's answer key and set "answer_source": "paper". If no answer key covers the question, work it out carefully and set "answer_source": "ai".
+   - "sol": copy the paper's explanation if it has one and set "explanation_source": "paper"; otherwise write 2 to 4 sentences on why the answer is right and set "explanation_source": "ai". For calculations also give "steps".
+   - "topic": the exact name of the matching topic from your topic list.
+   - "year": the exam year if the paper shows it, otherwise "".
+   - "d": "easy", "medium" or "hard".
+   - Skip instructions, adverts, page numbers and anything that is not a question.
+   Theory questions (essay, "describe", "explain", "show that", calculations to be written out): copy each part (a), (b)(i) and so on as its own question, exactly as written, with "k": "th" and:
+   - "ctx": the shared text the part depends on (the question's introduction or scenario), copied exactly; "" if none.
+   - "p": the part itself, exactly as written. "marks": its marks from the paper (or your estimate if none are shown).
+   - "points": the key points a full-marks answer must contain, one per mark or per idea, each { "t": the point in one sentence, "kw": 2 to 6 short phrases or values, any one of which shows the point was made, "m": marks for that point }. Students' answers are checked by looking for these phrases, so give the common ways of saying the point (for example ["absolutely integrable", "absolutely summable", "integral of |x(t)| is finite"]). Join words with " + " when all of them must appear (for example "finite + discontinuities"). Use plain words and numbers in "kw", never LaTeX.
+   - "model": a model answer worth full marks, as a student should write it.
+   - "topic", "year", "d" and "img" as above. No "o", "a", "sol" or source fields.
+
+11. Pictures. Use "img" only where a picture genuinely helps. Its value must be either the id from a [FIGURE id: caption] marker in the materials (for example "i1abc2de"), or the file name of an image I attached. Otherwise use null. Never invent ids. A question that uses a picture must refer to it ("Study the diagram above.") and be answerable by looking at it. Several past questions may share one picture.
+
+12. Maths and chemistry formatting. Write every formula, power, fraction or equation in LaTeX inside \( and \), for example \(\dfrac{22}{44} = 0.5\ \text{mol}\) (use \dfrac for fractions), \(x^{2}\), \(6.02 \times 10^{23}\). Write chemical formulas and equations with \ce{} inside \( \), for example \(\ce{H2O}\), \(\ce{2H2 + O2 -> 2H2O}\), \(\ce{Na+}\). Because the reply is JSON, every backslash must be doubled inside JSON strings: write "\\(\\dfrac{1}{2}\\)" and "\\(\\ce{H2O}\\)". Plain words stay plain text.
+
+OUTPUT
+
+- Reply with only the JSON, inside one code block, in exactly this format:
+
+{
+  "stride_course": 1,
+  "course": { "title": "{{COURSE}}", "category": "{{CATEGORY}}" },
+  "topics": [
+    {
+      "name": "Topic name",
+      "objectives": ["up to 6 objectives or sub-topics, close to the syllabus wording"],
+      "calc": false,
+      "sessions": 3,
+      "levels": [
+        {
+          "level": 1,
+          "facts": [
+            {
+              "t": "The fact.",
+              "why": "Why it is true.",
+              "ex": "An example.",
+              "source": "materials",
+              "img": null,
+              "q": [
+                { "k": "mc", "d": "easy", "p": "Question?", "o": ["A", "B", "C", "D"], "a": 2, "sol": "Why C is right." },
+                { "k": "tf", "d": "easy", "p": "Statement.", "a": true, "sol": "Why it is true." }
+              ]
+            }
+          ],
+          "worked": []
+        },
+        { "level": 2, "facts": [], "worked": [] },
+        { "level": 3, "facts": [], "worked": [] }
+      ]
+    }
+  ],
+  "past_questions": [
+    { "topic": "Topic name", "year": "2019", "d": "medium", "p": "Question exactly as written", "o": ["...", "...", "...", "..."], "a": 0, "answer_source": "paper", "sol": "Why it is right.", "explanation_source": "ai", "img": null },
+    { "k": "th", "topic": "Topic name", "year": "2019", "d": "medium", "ctx": "", "p": "Theory question exactly as written", "marks": 3, "points": [ { "t": "Key point.", "kw": ["phrase one", "phrase two"], "m": 1 } ], "model": "A full-marks answer.", "img": null }
+  ]
+}
+
+(In the example above, levels 2 and 3 are shown empty only to save space. Yours must be full.)
+
+- Only if you are asked for extra practice questions: write your own original exam-style questions (never copied from a book or paper) in a separate "practice_questions" list next to "past_questions". Use the same two formats as above, but leave out "year", "answer_source" and "explanation_source".
+
+- If everything will not fit in one reply, split it into batches of whole topics. Each batch must be a complete JSON file in the same format, with the same "course", some of the topics, and the past questions for those topics. After the code block, add one line: "Batch 1 of N. Reply next for the next batch." Never cut a topic in half.
