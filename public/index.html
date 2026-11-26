@@ -256,6 +256,19 @@ figure.fig figcaption{font-size:14px;color:var(--mute);margin-top:4px}
 .fbox textarea{min-height:70px;margin-bottom:12px}.fbox .linkb{display:block;margin:12px auto 0}
 .flist{margin:8px 0 0;padding-left:20px}.flist li{margin:0 0 4px}.flist small{color:var(--mute)}
 .qflag{float:right;font-size:14px}
+.xnl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:14px;color:var(--mute)}.xnl .linkb{font-size:14px;padding:4px 0;min-height:0}
+#xn .subhead h1{font-size:20px}
+.xcard{background:var(--card);border:2px solid var(--line);border-radius:20px;margin:0 14px 14px;padding:18px 0 6px}
+.xnotes{font-size:17px;line-height:1.65;max-width:68ch;margin:0 auto;padding:0 18px;overflow-wrap:break-word;color:var(--ink)}
+.xnotes h3{font:600 22px/1.2 Fredoka,sans-serif;margin:1.1em 0 .45em}.xnotes h4{font:600 19px/1.25 Fredoka,sans-serif;margin:1em 0 .4em}.xnotes h5{font-size:17px;margin:1em 0 .3em}
+.xnotes>:first-child{margin-top:0}
+.xnotes p{margin:0 0 .9em}.xnotes ul,.xnotes ol{padding-left:1.4em;margin:0 0 .9em}.xnotes li{margin:0 0 .35em}
+.xnotes .tbl{overflow-x:auto;margin:0 0 1em;-webkit-overflow-scrolling:touch}.xnotes table{border-collapse:collapse;min-width:100%;font-size:15px;line-height:1.45}
+.xnotes th,.xnotes td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;min-width:7.5em}.xnotes th{background:var(--bg);font-weight:800}
+.xnotes blockquote{border-left:4px solid var(--line);margin:0 0 .9em;padding:2px 0 2px 12px;color:var(--mute)}
+.xnotes code{background:var(--bg);padding:1px 5px;border-radius:6px;font-size:.92em}.xnotes hr{border:0;border-top:2px solid var(--line);margin:1.2em 0}
+.xnotes .katex-display{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:4px 0;-webkit-overflow-scrolling:touch}
+.xbtns{display:grid;gap:10px;margin:0 14px 30px}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="app">
@@ -277,6 +290,7 @@ figure.fig figcaption{font-size:14px;color:var(--mute);margin-top:4px}
 </section>
 <section id="done" hidden></section>
 <section id="mystats" hidden></section>
+<section id="xn" hidden></section>
 </div>
 <div class="cd" id="cd" hidden aria-live="assertive"><span id="cdn"></span></div>
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mh"><div class="mbox pop"><h3 id="mh">This is taking a while</h3><p>Check the solution?</p><div class="two"><button class="btn ghost" id="mno">No</button><button class="btn blue" id="myes">Yes</button></div></div></div>
@@ -377,13 +391,14 @@ async function ai(prompt,o={}){
 async function imgData(f){const bmp=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return{type:'image/jpeg',data:c.toDataURL('image/jpeg',.82).split(',')[1]}}
 
 /* ---------- state + sync ---------- */
-const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
+const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},xn:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
 const fresh=()=>JSON.parse(JSON.stringify(DEF));
 function merge(r){const s=Object.assign(fresh(),r);
   // study time: one total per day, plus all-time and best day/week. Older saves start all-time from per-topic minutes.
   if(!r||!r.st)s.st.tot=Math.round(Object.values(s.um||{}).reduce((a,b)=>a+(+b||0),0)*10)/10;
   s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};return s}
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY+'-'+UID));if(r&&r.v)return merge(r)}catch(e){}return fresh()}
+let NOTES={};   // extra notes per prepared level: "<unit id>-L<level>" -> Markdown
 let S=fresh(),R=null,pick=null,T=null,DB=null,USER=null,UID=null,ref=null,busy=false,again=false,boardTab='week',openSub=null,SUBS=[],LES={},LESIDS=new Set(),LOADED=new Set(),GEN={},ADMIN=false,PROFILE=null,pushT=null,CFG={},IMGS={},IMGLOADED=new Set(),PQ={},ALLOWED_IMG=new Set();
 const CP='content/main/';
 const chk=r=>{if(r&&r.error)throw{code:'db',message:r.error.message};return r};
@@ -405,7 +420,7 @@ async function getMat(id){let t=null;try{t=localStorage.getItem('stride-mat-'+id
 async function saveSubj(s){chk(await SB.from('subjects').upsert({id:s.id,title:s.title,cat:s.cat,color:s.color,units:s.units,mats:s.mats,exam_date:s.exam_date||null,session_min:s.session_min||15}))}
 async function putLesson(k,sid,fs){chk(await SB.from('lessons').upsert({id:k,subject_id:sid,f:fs}));LES[k]=fs;LESIDS.add(k)}
 async function loadSubjects(){const r=chk(await SB.from('subjects').select('*').order('created_at'));SUBS=r.data||[]}
-async function loadLessons(sid){if(LOADED.has(sid))return;await Promise.all([loadImages(sid).catch(()=>{}),loadPQ(sid).catch(()=>{})]);const r=chk(await SB.from('lessons').select('id,f').eq('subject_id',sid));(r.data||[]).forEach(x=>{LES[x.id]=x.f;LESIDS.add(x.id)});LOADED.add(sid)}
+async function loadLessons(sid){if(LOADED.has(sid))return;await Promise.all([loadImages(sid).catch(()=>{}),loadPQ(sid).catch(()=>{})]);const r=chk(await SB.from('lessons').select('*').eq('subject_id',sid));(r.data||[]).forEach(x=>{LES[x.id]=x.f;LESIDS.add(x.id);if(x.notes)NOTES[x.id]=x.notes;else delete NOTES[x.id]});LOADED.add(sid)}
 async function loadLessonIds(){const r=chk(await SB.from('lessons').select('id'));(r.data||[]).forEach(x=>LESIDS.add(x.id))}
 async function putGen(k,fs){GEN[k]=fs;try{chk(await SB.from('gen').upsert({user_id:UID,key:k,f:fs}))}catch(e){}}
 async function fetchGen(k){if(GEN[k])return GEN[k];try{const r=chk(await SB.from('gen').select('f').eq('user_id',UID).eq('key',k).maybeSingle());if(r.data){GEN[k]=r.data.f;return GEN[k]}}catch(e){}return null}
@@ -520,7 +535,7 @@ function renderMyStats(){const d=today(),x=stSummary(S.st),st=S.st;
 document.addEventListener('click',e=>{if(e.target.closest('[data-mystats]'))renderMyStats()});
 
 /* ---------- screens ---------- */
-const SCREENS=['auth','nick','home','subj','admin','board','plan','rev','qz','reg','stu','lesson','done','mystats'];
+const SCREENS=['auth','nick','home','subj','admin','board','plan','rev','qz','reg','stu','lesson','done','mystats','xn'];
 function show(id){SCREENS.forEach(x=>$('#'+x).hidden=x!==id);if(id==='lesson')$('#toast').hidden=true;window.scrollTo(0,0)}
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,4800)}
 function loading(on,m){$('#load').hidden=!on;if(m)$('#loadtxt').textContent=m}
@@ -528,7 +543,7 @@ function goHome(){renderHome();show('home')}
 
 function tcard(t){const p=P(t.id),lv=Math.min(p.lvl,maxL(t)),tot=totalFacts(t),ln=learned(t),calc=t.unit&&t.unit.calc;
   if(t.unit&&!t.sub.builtin){const s=t.sub,u=t.unit,n=uSess(u),pr=uProg(s,u),dn=Math.floor(pr+1e-9),part=Math.round((pr-dn)*100);
-    return `<div class="tcard" role="button" tabindex="0" data-t="${t.id}"><span class="badge" style="background:${t.color}">${initial(t.title)}</span><span><b>${esc(t.title)}${calc?'<span class="flag">Calculations</span>':''}</b><small>${quizPassed(t.id)?`Mastered · quiz best ${S.quiz[t.id].best}%`:quizReady(t)?'All sessions done · Topic quiz ready':n===0?`Extra topic, not in daily targets · Level ${lv} of 3`:dn>=n?`All ${n} sessions done · Level ${lv} of 3`:`${dn} of ${n} sessions done${part>0?` · ${part}% into the next`:''} · Level ${lv}`}</small><span class="prog"><i style="width:${n?Math.round(100*Math.min(1,pr/n)):Math.round(100*Math.min(1,ln/Math.max(1,tot)))}%"></i></span></span>${CHEV}</div>`}
+    return `<div class="tcard" role="button" tabindex="0" data-t="${t.id}"><span class="badge" style="background:${t.color}">${initial(t.title)}</span><span><b>${esc(t.title)}${calc?'<span class="flag">Calculations</span>':''}</b><small>${quizPassed(t.id)?`Mastered · quiz best ${S.quiz[t.id].best}%`:quizReady(t)?'All sessions done · Topic quiz ready':n===0?`Extra topic, not in daily targets · Level ${lv} of 3`:dn>=n?`All ${n} sessions done · Level ${lv} of 3`:`${dn} of ${n} sessions done${part>0?` · ${part}% into the next`:''} · Level ${lv}`}</small><span class="prog"><i style="width:${n?Math.round(100*Math.min(1,pr/n)):Math.round(100*Math.min(1,ln/Math.max(1,tot)))}%"></i></span>${xnLinks(t)}</span>${CHEV}</div>`}
   return `<div class="tcard" role="button" tabindex="0" data-t="${t.id}"><span class="badge" style="background:${t.color}">${initial(t.title)}</span><span><b>${esc(t.title)}${calc?'<span class="flag">Calculations</span>':''}</b><small>${mastered(t)?'Mastered · practise to keep it fresh':`Level ${lv} of ${maxL(t)} · ${ln} of ${tot} learned`}</small><span class="prog"><i style="width:${Math.round(100*Math.min(1,ln/tot))}%"></i></span></span>${t.custom&&!t.sub?`<button class="del" data-del="${t.id}" aria-label="Remove ${esc(t.title)}">×</button>`:CHEV}</div>`}
 function subjStats(s){const ts=s.units.map(u=>unitT(s,u));const ln=ts.reduce((n,t)=>n+learned(t),0),tot=ts.reduce((n,t)=>n+totalFacts(t),0);return{ln,tot:Math.max(tot,1)}}
 function paceRows(){const rows=[['easy','Easy questions'],['medium','Medium questions'],['hard','Hard questions']].map(([d,l])=>{const [sum,n]=S.tm[TMK[d]]||[0,0];if(!n)return`<div class="prow none"><b>${l}</b><p>No answers yet. Limit: ${tlim(d)}s per question.</p></div>`;const avg=sum/n,[c,m]=pace(avg,d);return`<div class="prow ${c}"><b>${l}: ${fmtS(avg)} average</b> <small>(limit ${tlim(d)}s, ${n} answered)</small><p>${m}</p></div>`});return rows.join('')}
@@ -581,6 +596,7 @@ function listClicks(root){
     if(e.target.closest('[data-plan]')){renderPlan();return}
     if(e.target.closest('[data-reg]')){renderReg(false);return}
     const gl=e.target.closest('[data-goal]');if(gl){S.goal=+gl.dataset.goal;save();renderHome();return}
+    const xn=e.target.closest('[data-xn]');if(xn){e.stopPropagation();const [id,L]=xn.dataset.xn.split('|'),t=byId(id);if(t)openNotes(t,+L,{next:root.id==='subj'&&t.sub?()=>renderSubj(t.sub.id):goHome});return}
     const sc=e.target.closest('[data-s]');if(sc){renderSubj(sc.dataset.s);return}
     const c=e.target.closest('[data-t]');if(c)startTopic(c.dataset.t);
   });
@@ -1210,6 +1226,7 @@ function finish(){
   if(perfect)R.xp+=10;
   const units=[...new Set(R.steps.map(x=>x.t).filter(t=>t.unit&&!t.sub.builtin).map(t=>t.id))],uBefore={};
   markStart(units);const rb={};units.forEach(id=>{const t=byId(id);uBefore[id]=uProg(t.sub,t.unit);rb[id]=quizReady(t)});
+  const lvBefore={};R.tops.forEach(id=>{const t=byId(id);if(t&&t.unit&&!t.sub.builtin)lvBefore[id]=[1,2,3].map(L=>done(t,L))});
   R.seen.forEach(fid=>{if(fid.startsWith('pq:')){const id=fid.slice(3),o=S.pqs[id]||{n:0,ok:0};o.n++;if(!R.wrong.has(fid))o.ok++;o.last=R.wrong.has(fid)?0:1;S.pqs[id]=o;return}const tid=fid.split(':')[0],p=P(tid),old=p.f[fid];const b=R.wrong.has(fid)?0:old?Math.min(old.b+1,5):1;p.f[fid]={b,due:addDays(d,R.wrong.has(fid)?1:INT[b]),e:(old&&old.e)||(R.wrong.has(fid)?0:1)}});
   const msgs=[];
   const newlyMet=credit(),tpNow=todayPlan();
@@ -1229,6 +1246,9 @@ function finish(){
   if(quizNow){keep=null;msgs.push(['good',`You've covered all of ${byId(quizNow).title}. Pass the topic quiz to master it.`])}
   if(keep)msgs.push(['',keep.txt]);
   R.tops.forEach(id=>{const t=byId(id);if(t&&advance(t))msgs.push(['',`Level ${P(id).lvl} of ${t.title} unlocked. Expect harder questions${P(id).lvl>=3?' and exam-standard problems':''}.`])});
+  // levels finished in this lesson that have extra notes: offered before leaving this screen
+  const XN=[];Object.keys(lvBefore).forEach(id=>{const t=byId(id);[1,2,3].forEach(L=>{const k=id+'-L'+L;if(!lvBefore[id][L-1]&&done(t,L)&&NOTES[k]&&!(S.xn[k]&&S.xn[k].a))XN.push([t,L])})});
+  XN.forEach(([t,L])=>msgs.push(['',`Level ${L} of ${t.title} done. Its extra notes come next; you can skip them.`]));
   if(R.late)msgs.push(['bad',`${R.late} correct answer${R.late>1?'s were':' was'} too slow to earn XP.`]);
   const grp=d=>R.times.filter(x=>x[1]===d).map(x=>x[0]);
   [['easy','Easy'],['medium','Medium'],['hard','Hard']].forEach(([d,l])=>{const a=grp(d);if(!a.length)return;const avg=a.reduce((x,y)=>x+y,0)/a.length,[c,m]=pace(avg,d);msgs.push([c==='good'?'good':c==='bad'?'bad':'',`${l}: ${fmtS(avg)} average. ${m}`])});
@@ -1237,10 +1257,57 @@ function finish(){
   $('#done').innerHTML=`<div class="dwrap pop">${MEDAL}<h1>${perfect?'Perfect lesson!':'Lesson complete'}</h1><div class="tiles"><div><b>+${R.xp}</b><span>XP earned</span></div><div><b>${acc}%</b><span>First try</span></div><div><b>${fmtS(avgAll)}</b><span>Avg time</span></div><div><b>${R.best}</b><span>Best combo</span></div></div>${perfect?'<div class="msg good">No mistakes and always in time: +10 bonus XP.</div>':''}${msgs.map(([c,m])=>`<div class="msg ${c}">${esc(m)}</div>`).join('')}${quizNow?'<button class="btn blue" id="toquiz">Take the topic quiz</button><button class="btn ghost" id="back">Later</button>':keep?'<button class="btn blue" id="more">Keep going</button><button class="btn ghost" id="back">Done for now</button>':'<button class="btn blue" id="back">Continue</button>'}<button class="linkb" id="lookback" style="display:block;margin:10px auto 0">Look back over this lesson</button></div>`;
   show('done');$('#lookback').onclick=()=>{if(!R)return;R.closed=true;viewStep(R.steps.length-1)};const firstT=byId([...R.tops][0])||(R.steps[0]&&R.steps[0].t);$('#back').onclick=()=>{if(firstT&&firstT.sub)renderSubj(firstT.sub.id);else goHome()};
   if(quizNow)$('#toquiz').onclick=async()=>{await loadPQ(byId(quizNow).sub.id).catch(()=>{});renderQuizIntro(quizNow)};else if(keep)$('#more').onclick=()=>startTopic(keep.id);
+  if(XN.length)['#back','#more','#toquiz'].forEach(sel=>{const b=$(sel);if(!b||!b.onclick)return;const fn=b.onclick;
+    b.onclick=()=>{const list=XN.splice(0),go=i=>i<list.length?openNotes(list[i][0],list[i][1],{auto:true,next:()=>go(i+1)}):(list.length&&show('done'),fn());go(0)}});
 }
 $('#quit').onclick=()=>{if(QZ){if(!QZ.quitArm){QZ.quitArm=true;toast('Tap × again to end the quiz now. Unanswered questions count as wrong.');setTimeout(()=>{if(QZ)QZ.quitArm=false},4000);return}clearInterval(QZ.timer);while(QZ.ans.length<QZ.items.length)QZ.ans.push({pick:null,ok:false,time:0,timeout:false});QZ.i=QZ.items.length;qFinish();return}
   stopTimer();if(R&&R.closed){backToLive();return}
   const t=R&&R.steps[0]&&R.steps[0].t;if(R){accrue();credit();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome()};
+
+/* ---------- extra notes ----------
+   A level can carry optional longer notes in Markdown (headings, lists, tables, bold and italic) with LaTeX maths.
+   They are offered after a student finishes the level, and can be opened any time from the topic card.
+   Reading or skipping them never affects progress; opens are recorded in S.xn for stats only. */
+function mdInline(t){return t.replace(/\*\*(.+?)\*\*|__(.+?)__/g,(_,a,b)=>`<strong>${a||b}</strong>`).replace(/(^|[^\w*])\*(?!\s)(.+?)\*(?!\w)/g,'$1<em>$2</em>').replace(/(^|[^\w])_(?!\s)(.+?)_(?!\w)/g,'$1<em>$2</em>')}
+function mdHtml(src){
+  const keep=[],put=h=>'\u0001'+(keep.push(h)-1)+'\u0002';
+  // maths and code are set aside first, so Markdown never touches them
+  let t=String(src||'').replace(/\r\n?/g,'\n').replace(/\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)/g,m=>put(esc(m))).replace(/`([^`\n]+)`/g,(_,c)=>put(`<code>${esc(c)}</code>`));
+  const L=t.split('\n'),out=[],inl=x=>mdInline(esc(x.trim()));let para=[];
+  const flush=()=>{if(para.length){out.push(`<p>${inl(para.join(' '))}</p>`);para=[]}};
+  const cells=x=>x.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+  for(let i=0;i<L.length;i++){const ln=L[i];let m;
+    if(!ln.trim()){flush();continue}
+    if((m=ln.match(/^\s*(#{1,6})\s+(.*?)\s*#*\s*$/))){flush();const h=Math.min(5,Math.max(3,m[1].length+1));out.push(`<h${h}>${inl(m[2])}</h${h}>`);continue}
+    if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)){flush();out.push('<hr>');continue}
+    if(ln.includes('|')&&i+1<L.length&&/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(L[i+1])){flush();
+      const head=cells(ln),rows=[];i+=2;while(i<L.length&&L[i].includes('|')&&L[i].trim()){rows.push(cells(L[i]));i++}i--;
+      out.push(`<div class="tbl"><table><thead><tr>${head.map(c=>`<th>${inl(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${head.map((_,k)=>`<td>${inl(r[k]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);continue}
+    if(/^\s*>/.test(ln)){flush();const q=[];while(i<L.length&&/^\s*>/.test(L[i])){q.push(L[i].replace(/^\s*>\s?/,''));i++}i--;out.push(`<blockquote>${mdHtml(q.join('\n'))}</blockquote>`);continue}
+    const li=/^\s*([-*+]|\d+[.)])\s+(.*)$/;
+    if((m=ln.match(li))){flush();const ol=/\d/.test(m[1]),items=[];
+      while(i<L.length){const x=L[i].match(li);if(x&&/\d/.test(x[1])===ol){items.push(x[2]);i++}else if(L[i].trim()&&/^\s+/.test(L[i])&&items.length){items[items.length-1]+=' '+L[i].trim();i++}else break}i--;
+      out.push(`<${ol?'ol':'ul'}>${items.map(x=>`<li>${inl(x)}</li>`).join('')}</${ol?'ol':'ul'}>`);continue}
+    para.push(ln)}
+  flush();
+  return out.join('\n').replace(/\u0001(\d+)\u0002/g,(_,n)=>keep[+n]);
+}
+const xnKey=(t,L)=>t.id+'-L'+L;
+function xnLinks(t){if(!t.unit||t.sub.builtin)return '';const ls=[1,2,3].filter(L=>NOTES[xnKey(t,L)]);if(!ls.length)return '';
+  return `<span class="xnl">Extra notes:${ls.map(L=>`<button class="linkb" data-xn="${t.id}|${L}" aria-label="Extra notes for level ${L} of ${esc(t.title)}">Level ${L}</button>`).join('')}</span>`}
+// o: {next, auto}. auto = shown after finishing the level (Continue and Skip); otherwise opened from the topic card.
+function openNotes(t,L,o){
+  const k=xnKey(t,L),md=NOTES[k];if(!md)return o.next();
+  const x=S.xn[k]||(S.xn[k]={o:0});x.o++;x.d=today();if(o.auto)x.a=1;save();
+  $('#xn').innerHTML=`<div class="subhead"><button class="back" id="xback" aria-label="Back">${BACK}</button><h1>Extra notes — Level ${L}: ${esc(t.title)}</h1>${o.auto?'<button class="linkb" id="xskip1">Skip</button>':''}</div>
+    <p class="sync" style="margin:0 18px 12px">${o.auto?'Optional reading that goes deeper than the facts. Skipping it doesn\'t affect your progress.':'Optional reading that goes deeper than the facts. Open it any time.'}</p>
+    <div class="xcard"><div class="xnotes">${mdHtml(md)}</div></div>
+    <div class="xbtns">${o.auto?'<button class="btn blue" id="xcont">Continue</button><button class="btn ghost" id="xskip">Skip</button>':'<button class="btn blue" id="xcont">Done</button>'}</div>`;
+  math($('#xn'));show('xn');
+  const go=how=>()=>{x[how]=(x[how]||0)+1;save();o.next()};
+  $('#xcont').onclick=go('c');$('#xback').onclick=go(o.auto?'s':'c');
+  ['#xskip','#xskip1'].forEach(id=>{const b=$(id);if(b)b.onclick=go('s')});
+}
 
 /* ---------- install button ---------- */
 const SHARE_I='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
@@ -1371,7 +1438,7 @@ function paintReview(){
     const aiOnly=RV.filter==='ai',nAI=s.units.reduce((n,u)=>n+[1,2,3].reduce((m,L)=>m+(LES[u.id+'-L'+L]||[]).filter(f=>f.ai&&!f.hidden).length,0),0);
     box.innerHTML=`<div class="tabs"><button data-lf="all" class="${aiOnly?'':'on'}">All</button><button data-lf="ai" class="${aiOnly?'on':''}">Written by AI (${nAI})</button></div><p class="sync" style="margin:0 18px 12px">${aiOnly?'These were written by AI because your materials didn\'t cover them. Check each one; tap <b>Looks right</b> or <b>Edit</b> to clear it from this list.':'Tap <b>Edit</b> to fix any wording, option, answer, explanation or step, or tap an option to make it the correct answer. Removed items disappear for students but keep everyone\'s progress intact.'}</p>`+s.units.map(u=>{
       const lv=[1,2,3].map(L=>[L,LES[u.id+'-L'+L]]).filter(x=>x[1]&&(!aiOnly||x[1].some(f=>f.ai&&!f.hidden)));if(aiOnly&&!lv.length)return '';
-      return `<details class="unitd"${aiOnly?' open':''}><summary>${esc(u.name)} · ${aiOnly?`${lv.reduce((n,x)=>n+x[1].filter(f=>f.ai&&!f.hidden).length,0)} to check`:`${lv.length} of 3 levels`}</summary>${lv.length?'':'<p class="help">No levels prepared yet.</p>'}${lv.map(([L,items])=>`<h4 style="font:600 17px Fredoka,sans-serif;margin:14px 0 8px">Level ${L} ${AION()?`<button class="linkb" data-regen="${u.id}|${L}">Rewrite this level</button>`:''}</h4>`+items.map((f,j)=>aiOnly&&!(f.ai&&!f.hidden)?'':`<div class="rcard${f.hidden?' off':''}"><div class="meta2">${f.w?'Worked example':'Fact'} ${j+1}${f.hidden?' · removed':''}${f.ai?'<span class="badge2">Written by AI</span>':''}</div><p style="margin:0">${esc(f.t)}</p>${figHtml(f.img)}${f.w?`<ol class="steps">${f.w.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol><p><b>Answer:</b> ${esc(f.w.ans)}</p>`:`${f.why?`<p class="help" style="margin:6px 0 0"><b>Why:</b> ${esc(f.why)}</p>`:''}${f.ex?`<p class="help" style="margin:4px 0 0"><b>Example:</b> ${esc(f.ex)}</p>`:''}`}${(f.q||[]).map((q,qi)=>qReview(q,`L|${u.id}-L${L}|${j}|${qi}`)).join('')}<div class="rbtns">${f.ai&&!f.hidden?`<button class="btn ok" data-aiok="${u.id}-L${L}|${j}">Looks right</button>`:''}<button class="btn blue" data-edit="L|${u.id}-L${L}|${j}">Edit</button><button class="btn ghost" data-hide="${u.id}-L${L}|${j}">${f.hidden?'Restore':'Remove'}</button></div></div>`).join('')).join('')}</details>`}).join('')+(aiOnly&&!nAI?'<p class="sync">Nothing left to check.</p>':'');
+      return `<details class="unitd"${aiOnly?' open':''}><summary>${esc(u.name)} · ${aiOnly?`${lv.reduce((n,x)=>n+x[1].filter(f=>f.ai&&!f.hidden).length,0)} to check`:`${lv.length} of 3 levels`}</summary>${lv.length?'':'<p class="help">No levels prepared yet.</p>'}${lv.map(([L,items])=>`<h4 style="font:600 17px Fredoka,sans-serif;margin:14px 0 8px">Level ${L} ${AION()?`<button class="linkb" data-regen="${u.id}|${L}">Rewrite this level</button>`:''}</h4>${NOTES[u.id+'-L'+L]?`<details class="rcard"><summary><b>Extra notes</b> (shown to students after this level)</summary><div class="xnotes" style="padding:10px 0 0">${mdHtml(NOTES[u.id+'-L'+L])}</div></details>`:''}`+items.map((f,j)=>aiOnly&&!(f.ai&&!f.hidden)?'':`<div class="rcard${f.hidden?' off':''}"><div class="meta2">${f.w?'Worked example':'Fact'} ${j+1}${f.hidden?' · removed':''}${f.ai?'<span class="badge2">Written by AI</span>':''}</div><p style="margin:0">${esc(f.t)}</p>${figHtml(f.img)}${f.w?`<ol class="steps">${f.w.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol><p><b>Answer:</b> ${esc(f.w.ans)}</p>`:`${f.why?`<p class="help" style="margin:6px 0 0"><b>Why:</b> ${esc(f.why)}</p>`:''}${f.ex?`<p class="help" style="margin:4px 0 0"><b>Example:</b> ${esc(f.ex)}</p>`:''}`}${(f.q||[]).map((q,qi)=>qReview(q,`L|${u.id}-L${L}|${j}|${qi}`)).join('')}<div class="rbtns">${f.ai&&!f.hidden?`<button class="btn ok" data-aiok="${u.id}-L${L}|${j}">Looks right</button>`:''}<button class="btn blue" data-edit="L|${u.id}-L${L}|${j}">Edit</button><button class="btn ghost" data-hide="${u.id}-L${L}|${j}">${f.hidden?'Restore':'Remove'}</button></div></div>`).join('')).join('')}</details>`}).join('')+(aiOnly&&!nAI?'<p class="sync">Nothing left to check.</p>':'');
     box.querySelectorAll('[data-lf]').forEach(b=>b.onclick=()=>{RV.filter=b.dataset.lf;keepScroll(paintReview)});
   }else if(RV.mode==='flags'){
     const fl=RV.flags,st=RV.filter==='fixed'?'fixed':'open',g={};
@@ -1586,6 +1653,10 @@ async function impLevel(lv,where,P){
     const o=W(prob,steps,String(x.ans||''),String(x.why||''),(Array.isArray(x.mistakes)?x.mistakes:[]).map(String),...q),im=await P.ref(x.img,w);if(im)o.img=im;if(impAI(x))o.ai=true;out.push(o)}
   return out;
 }
+// A level's extra notes live in their own column, so updating them never touches the level's facts or anyone's progress.
+async function saveNotes(key,md,where,P){const r=await SB.from('lessons').update({notes:md}).eq('id',key);
+  if(r.error){if(!P.notesErr){P.notesErr=1;P.err.push(`${where}: extra notes couldn't be saved (${r.error.message}). Run the latest supabase/schema.sql in Supabase, then import again.`)}return}
+  NOTES[key]=md;P.notes=(P.notes||0)+1}
 // Imports one course file into the chosen course, or (target 'auto') the course named in the file, creating it if needed.
 async function importCourse(data,label,target,files,P){
   if(!data||typeof data!=='object'||Array.isArray(data))throw 'This isn\'t a course file.';
@@ -1625,10 +1696,12 @@ async function importCourse(data,label,target,files,P){
       const L=Number.isInteger(+lv.level)&&+lv.level>=1?+lv.level:j+1,where=`Topic “${u.name}”, level ${L}`;
       if(L>3){P.err.push(`${where}: only levels 1 to 3 are used, so it was skipped.`);continue}
       loading(true,`${label}: topic ${n+1} of ${plan.length}, level ${L}…`);
-      const items=await impLevel(lv,where,P);
+      const items=await impLevel(lv,where,P),key=u.id+'-L'+L;
+      let xn=null;if(lv.extra_notes!=null){if(typeof lv.extra_notes!=='string')P.err.push(`${where}: "extra_notes" must be text, so it was ignored.`);else if(lv.extra_notes.trim())xn=lv.extra_notes.trim().slice(0,60000)}
+      if(!items.length&&xn&&LESIDS.has(key)){await saveNotes(key,xn,where,P);continue}   // notes only: keep the level, update its notes
       if(!items.length){if((lv.facts||[]).length||(lv.worked||[]).length)P.err.push(`${where}: nothing usable, so the level wasn't changed.`);continue}
       {const nf=items.filter(f=>!f.w).length;if(nf<3)P.err.push(`${where}: has ${nf} usable fact${nf===1?'':'s'}; 3 are expected.`)}
-      await putLesson(u.id+'-L'+L,s.id,items);P.levels++;P.aiItems+=items.filter(f=>f.ai).length}}
+      await putLesson(key,s.id,items);P.levels++;P.aiItems+=items.filter(f=>f.ai).length;if(xn)await saveNotes(key,xn,where,P)}}
   // past questions, skipping any already in the course
   if(pqs.length){loading(true,`${label}: saving past questions…`);await loadPQ(s.id,true);
     const key=(p,o)=>norm(p)+'|'+o.map(norm).join('|'),have=new Set((PQ[s.id]||[]).map(r=>r.q&&r.q.k==='th'?norm(r.q.p)+'|th':r.q&&Array.isArray(r.q.o)?key(r.q.p,r.q.o):'')),rows=[];
@@ -1659,9 +1732,9 @@ async function runImport(){
     try{await importCourse(impParse(await src.get()),src.label,target,imgs,P)}
     catch(e){console.error('Course import failed',src.label,e);P.failed.push(`${src.label}: ${typeof e==='string'?e:errMsg(e)+(e&&e.message?` (${e.message})`:'')}`)}}
   loading(false);
-  const ok=P.levels||P.pq||P.topicsNew||P.faUpd;
+  const ok=P.levels||P.pq||P.topicsNew||P.faUpd||P.notes;
   out.innerHTML=`<div class="panel" style="margin-top:12px"><span class="lbl">${ok?'Imported':'Nothing imported'}</span>
-    ${ok?`<p class="help" style="margin:0 0 8px">${[...P.courses].map(esc).join(', ')}: ${P.topics} topic${P.topics===1?'':'s'}${P.topicsNew?` (${P.topicsNew} new)`:''}, ${P.levels} lesson level${P.levels===1?'':'s'}, ${P.pq} past question${P.pq===1?'':'s'}${P.dup?` (${P.dup} already there, skipped${P.faUpd?`; final answers added to ${P.faUpd}`:''})`:''}${P.imgs?`, ${P.imgs} picture${P.imgs===1?'':'s'}`:''}.</p>
+    ${ok?`<p class="help" style="margin:0 0 8px">${[...P.courses].map(esc).join(', ')}: ${P.topics} topic${P.topics===1?'':'s'}${P.topicsNew?` (${P.topicsNew} new)`:''}, ${P.levels} lesson level${P.levels===1?'':'s'}, ${P.pq} past question${P.pq===1?'':'s'}${P.dup?` (${P.dup} already there, skipped${P.faUpd?`; final answers added to ${P.faUpd}`:''})`:''}${P.imgs?`, ${P.imgs} picture${P.imgs===1?'':'s'}`:''}${P.notes?`, extra notes for ${P.notes} level${P.notes===1?'':'s'}`:''}.</p>
     ${P.aiItems?`<p class="help" style="margin:0 0 8px">${P.aiItems} fact${P.aiItems===1?'':'s'} and worked example${P.aiItems===1?' was':'s were'} written by AI rather than taken from your materials. Check them under Review lessons → Written by AI.</p>`:''}`:''}
     ${P.failed.map(x=>`<p class="warnt" style="margin:0 0 8px">${esc(x)}</p>`).join('')}
     ${P.err.length?`<details><summary>${P.err.length} problem${P.err.length===1?'':'s'} in the file</summary><p class="help">Everything else was imported. You can copy these and send them to the AI to fix just those parts.</p><ul class="bul">${P.err.slice(0,150).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${P.err.length>150?`<p class="help">…and ${P.err.length-150} more.</p>`:''}<button class="btn ghost" id="impcopy" style="width:100%">Copy problems</button></details>`:''}</div>`;

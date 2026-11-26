@@ -68,6 +68,8 @@ RULES
 
 12. Maths and chemistry formatting. Write every formula, power, fraction or equation in LaTeX inside \( and \), for example \(\dfrac{22}{44} = 0.5\ \text{mol}\) (use \dfrac for fractions), \(x^{2}\), \(6.02 \times 10^{23}\). Write chemical formulas and equations with \ce{} inside \( \), for example \(\ce{H2O}\), \(\ce{2H2 + O2 -> 2H2O}\), \(\ce{Na+}\). Because the reply is JSON, every backslash must be doubled inside JSON strings: write "\\(\\dfrac{1}{2}\\)" and "\\(\\ce{H2O}\\)". Plain words stay plain text.
 
+13. Extra notes (optional). Each level may have "extra_notes": a Markdown string of 150–600 words that goes deeper than the facts: derivations, why methods work, background maths the level depends on, and connections between ideas. Use ## / ### headings, short paragraphs, lists and tables. Write maths in LaTeX with \( \) inline and \[ \] for displayed formulas (double the backslashes in JSON). Do not repeat the facts word for word.
+
 OUTPUT
 
 - Reply with only the JSON, inside one code block, in exactly this format:
@@ -97,7 +99,8 @@ OUTPUT
               ]
             }
           ],
-          "worked": []
+          "worked": [],
+          "extra_notes": "## Why it works\n\nA short explanation with inline maths \\(x^{2}\\) and a displayed formula:\n\n\\[ \\dfrac{a}{b} = c \\]\n\n| Quantity | Unit |\n|---|---|\n| Mass | kg |"
         },
         { "level": 2, "facts": [], "worked": [] },
         { "level": 3, "facts": [], "worked": [] }

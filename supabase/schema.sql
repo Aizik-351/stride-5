@@ -79,6 +79,7 @@ create table if not exists public.lessons (
   subject_id text not null references public.subjects(id) on delete cascade,
   f jsonb not null
 );
+alter table public.lessons add column if not exists notes text;   -- optional extra notes for the level (Markdown with LaTeX)
 
 -- images cut out of materials and past questions (files live in the "images" storage bucket)
 create table if not exists public.images (
