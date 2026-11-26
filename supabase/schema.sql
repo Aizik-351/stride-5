@@ -161,6 +161,36 @@ create policy "own push subscriptions" on public.push_subs for all to authentica
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 revoke all on public.push_subs from anon;
 
+-- ---------- facts and questions students flag as wrong or unclear ----------
+-- One flag per student per item; flagging again changes the reason. Students see and change only their own flags;
+-- admins see all of them and mark them fixed.
+create table if not exists public.flags (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  subject_id text not null references public.subjects(id) on delete cascade,
+  item text not null,          -- "L|<lesson id>|<fact>" for a fact or worked example, "L|<lesson id>|<fact>|<question>" for its question, "P|<past question id>"
+  kind text not null,          -- 'fact', 'worked', 'question', 'theory'
+  reason text not null,
+  note text,
+  snap text,                   -- the text the student saw, in case it is edited later
+  status text not null default 'open',   -- 'open' or 'fixed'
+  created_at timestamptz not null default now(),
+  constraint flags_kind check (kind in ('fact','worked','question','theory')),
+  constraint flags_status check (status in ('open','fixed')),
+  constraint flags_len check (char_length(item) <= 200 and char_length(reason) <= 80 and char_length(coalesce(note,'')) <= 500 and char_length(coalesce(snap,'')) <= 1000)
+);
+create unique index if not exists flags_user_item on public.flags (user_id, item);
+create index if not exists flags_subject on public.flags (subject_id, status);
+alter table public.flags enable row level security;
+drop policy if exists "own flags" on public.flags;
+create policy "own flags" on public.flags for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid() and status = 'open');
+drop policy if exists "admins manage flags" on public.flags;
+create policy "admins manage flags" on public.flags for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+revoke all on public.flags from anon;
+grant select, insert, update, delete on public.flags to authenticated;
+
 -- ---------- server-only tables (no policies: only the server key can use them) ----------
 create table if not exists public.ai_usage (
   user_id uuid not null references auth.users(id) on delete cascade,

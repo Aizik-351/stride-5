@@ -250,6 +250,12 @@ figure.fig figcaption{font-size:14px;color:var(--mute);margin-top:4px}
   .act{width:min(780px,100%)}
   .fact,.explain{padding:26px 30px}
 }
+.lflag{display:grid;place-items:center}.lflag svg{width:24px;height:24px}.lflag.on{color:var(--coral)}.lflag.on .fl{fill:currentColor}
+.fbox{text-align:left;width:min(460px,100%)}.fbox h3,.fbox>p{text-align:center}.fbox>p{font-size:16px;margin-bottom:12px}
+.freasons{max-height:42vh;overflow:auto;margin:0 0 10px;border:2px solid var(--line);border-radius:14px;padding:0 12px}.freasons label.chk input{accent-color:var(--coral)}
+.fbox textarea{min-height:70px;margin-bottom:12px}.fbox .linkb{display:block;margin:12px auto 0}
+.flist{margin:8px 0 0;padding-left:20px}.flist li{margin:0 0 4px}.flist small{color:var(--mute)}
+.qflag{float:right;font-size:14px}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="app">
@@ -265,7 +271,7 @@ figure.fig figcaption{font-size:14px;color:var(--mute);margin-top:4px}
 <section id="reg" hidden></section>
 <section id="stu" hidden></section>
 <section id="lesson" hidden>
-  <div class="lhead"><button class="x" id="quit" aria-label="Quit lesson">×</button><button class="x lback" id="lback" aria-label="Go back to the previous part" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="lbar"><i id="lbar"></i></div><span class="combo" id="combo"></span><span class="tmr" id="tmr" hidden></span></div>
+  <div class="lhead"><button class="x" id="quit" aria-label="Quit lesson">×</button><button class="x lback" id="lback" aria-label="Go back to the previous part" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="lbar"><i id="lbar"></i></div><span class="combo" id="combo"></span><span class="tmr" id="tmr" hidden></span><button class="x lflag" id="lflag" aria-label="Flag a problem with this" title="Flag a problem with this" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="fl" d="M6 4h12l-2.5 4.5L18 13H6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg></button></div>
   <div class="stage" id="stage"></div>
   <footer class="act" id="act"></footer>
 </section>
@@ -274,6 +280,7 @@ figure.fig figcaption{font-size:14px;color:var(--mute);margin-top:4px}
 </div>
 <div class="cd" id="cd" hidden aria-live="assertive"><span id="cdn"></span></div>
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mh"><div class="mbox pop"><h3 id="mh">This is taking a while</h3><p>Check the solution?</p><div class="two"><button class="btn ghost" id="mno">No</button><button class="btn blue" id="myes">Yes</button></div></div></div>
+<div class="modal" id="fmodal" hidden role="dialog" aria-modal="true" aria-labelledby="fh"><form class="mbox fbox pop" id="fform"></form></div>
 <div class="modal" id="pmodal" hidden role="dialog" aria-modal="true" aria-labelledby="ph"><form class="mbox pop" id="pform"><h3 id="ph">Admin access</h3><p>Enter the admin passcode. This unlocks Admin for your account.</p><input class="txt" id="pcode" type="password" autocomplete="off" aria-label="Passcode" style="margin-bottom:14px"><div class="two"><button type="button" class="btn ghost" id="pcancel">Cancel</button><button class="btn blue">Unlock</button></div></form></div>
 <div class="modal" id="imodal" hidden role="dialog" aria-modal="true" aria-labelledby="ih"><div class="mbox pop"><h3 id="ih">Install Stride</h3><p id="isub">Two quick steps:</p><ol class="isteps" id="isteps"></ol><button class="btn blue" id="iclose" style="width:100%">Got it</button></div></div>
 <div class="zoom" id="zoom" hidden role="dialog" aria-modal="true" aria-label="Image"><button class="btn ghost" id="zclose">Close</button><img id="zimg" alt=""></div>
@@ -370,12 +377,12 @@ async function ai(prompt,o={}){
 async function imgData(f){const bmp=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return{type:'image/jpeg',data:c.toDataURL('image/jpeg',.82).split(',')[1]}}
 
 /* ---------- state + sync ---------- */
-const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
+const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
 const fresh=()=>JSON.parse(JSON.stringify(DEF));
 function merge(r){const s=Object.assign(fresh(),r);
   // study time: one total per day, plus all-time and best day/week. Older saves start all-time from per-topic minutes.
   if(!r||!r.st)s.st.tot=Math.round(Object.values(s.um||{}).reduce((a,b)=>a+(+b||0),0)*10)/10;
-  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};return s}
+  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};return s}
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY+'-'+UID));if(r&&r.v)return merge(r)}catch(e){}return fresh()}
 let S=fresh(),R=null,pick=null,T=null,DB=null,USER=null,UID=null,ref=null,busy=false,again=false,boardTab='week',openSub=null,SUBS=[],LES={},LESIDS=new Set(),LOADED=new Set(),GEN={},ADMIN=false,PROFILE=null,pushT=null,CFG={},IMGS={},IMGLOADED=new Set(),PQ={},ALLOWED_IMG=new Set();
 const CP='content/main/';
@@ -421,7 +428,9 @@ const dueList=()=>topics().flatMap(t=>{const p=P(t.id);return allFacts(t).filter
 const curStreak=()=>(S.last===today()||S.last===addDays(today(),-1))?S.streak:0;
 const diffOf=(q,f,t)=>q.d||(maxL(t)<=3?['easy','medium','hard'][Math.min(f.L,3)-1]:f.L<=1?'easy':f.L<=3?'medium':'hard');
 function advance(t){const p=P(t.id);let up=false;while(p.lvl<maxL(t)&&done(t,p.lvl)){p.lvl++;up=true}return up}
-function pace(avg,hard){const lim=hard?45:30;if(avg<=lim)return['good','Great pace. You are answering within the time limit. Keep it up!'];if(avg<lim+30)return['ok','A little slow. Try harder to answer within the time limit next time.'];return['bad','This needs improvement: you are taking well over the time limit. Re-read the explanations and keep practising. Speed comes with practice, and you will get there.']}
+// Time limit per question: 30 s easy, 45 s medium, 1 minute hard.
+const TLIM={easy:30,medium:45,hard:60},tlim=d=>TLIM[d]||TLIM.medium,TMK={easy:'e',medium:'m',hard:'h'};
+function pace(avg,d){const lim=tlim(d);if(avg<=lim)return['good','Great pace. You are answering within the time limit. Keep it up!'];if(avg<lim+30)return['ok','A little slow. Try harder to answer within the time limit next time.'];return['bad','This needs improvement: you are taking well over the time limit. Re-read the explanations and keep practising. Speed comes with practice, and you will get there.']}
 
 /* ---------- study plan engine ---------- */
 const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -522,7 +531,7 @@ function tcard(t){const p=P(t.id),lv=Math.min(p.lvl,maxL(t)),tot=totalFacts(t),l
     return `<div class="tcard" role="button" tabindex="0" data-t="${t.id}"><span class="badge" style="background:${t.color}">${initial(t.title)}</span><span><b>${esc(t.title)}${calc?'<span class="flag">Calculations</span>':''}</b><small>${quizPassed(t.id)?`Mastered · quiz best ${S.quiz[t.id].best}%`:quizReady(t)?'All sessions done · Topic quiz ready':n===0?`Extra topic, not in daily targets · Level ${lv} of 3`:dn>=n?`All ${n} sessions done · Level ${lv} of 3`:`${dn} of ${n} sessions done${part>0?` · ${part}% into the next`:''} · Level ${lv}`}</small><span class="prog"><i style="width:${n?Math.round(100*Math.min(1,pr/n)):Math.round(100*Math.min(1,ln/Math.max(1,tot)))}%"></i></span></span>${CHEV}</div>`}
   return `<div class="tcard" role="button" tabindex="0" data-t="${t.id}"><span class="badge" style="background:${t.color}">${initial(t.title)}</span><span><b>${esc(t.title)}${calc?'<span class="flag">Calculations</span>':''}</b><small>${mastered(t)?'Mastered · practise to keep it fresh':`Level ${lv} of ${maxL(t)} · ${ln} of ${tot} learned`}</small><span class="prog"><i style="width:${Math.round(100*Math.min(1,ln/tot))}%"></i></span></span>${t.custom&&!t.sub?`<button class="del" data-del="${t.id}" aria-label="Remove ${esc(t.title)}">×</button>`:CHEV}</div>`}
 function subjStats(s){const ts=s.units.map(u=>unitT(s,u));const ln=ts.reduce((n,t)=>n+learned(t),0),tot=ts.reduce((n,t)=>n+totalFacts(t),0);return{ln,tot:Math.max(tot,1)}}
-function paceRows(){const rows=[['e','Easy and medium questions',false],['h','Hard questions',true]].map(([k,l,h])=>{const [sum,n]=S.tm[k];if(!n)return`<div class="prow none"><b>${l}</b><p>No answers yet. Limit: ${h?45:30}s per question.</p></div>`;const avg=sum/n,[c,m]=pace(avg,h);return`<div class="prow ${c}"><b>${l}: ${fmtS(avg)} average</b> <small>(limit ${h?45:30}s, ${n} answered)</small><p>${m}</p></div>`});return rows.join('')}
+function paceRows(){const rows=[['easy','Easy questions'],['medium','Medium questions'],['hard','Hard questions']].map(([d,l])=>{const [sum,n]=S.tm[TMK[d]]||[0,0];if(!n)return`<div class="prow none"><b>${l}</b><p>No answers yet. Limit: ${tlim(d)}s per question.</p></div>`;const avg=sum/n,[c,m]=pace(avg,d);return`<div class="prow ${c}"><b>${l}: ${fmtS(avg)} average</b> <small>(limit ${tlim(d)}s, ${n} answered)</small><p>${m}</p></div>`});return rows.join('')}
 
 function renderHome(){
   const d=today(),xpT=S.hist[d]||0,g=S.goal,st=curStreak(),C=2*Math.PI*50,tp=todayPlan(),usePlan=tp.tm>0,pct=usePlan?tp.pct:Math.min(1,xpT/g);
@@ -621,7 +630,10 @@ function renderAdmin(){
   $('#aback').onclick=goHome;$('#toStu').onclick=renderStudents;$('#impgo').onclick=runImport;$('#impprompt').onclick=()=>exportForAI(null);
   $('#addf').onsubmit=async e=>{e.preventDefault();await createSubject($('#an').value.trim(),$('#ac').value.trim(),$('#as')?[...$('#as').files]:[],$('#ap').value.trim(),[...$('#am').files])};
   renderAdminList();show('admin');
+  flagCounts().then(()=>document.querySelectorAll('[data-fc]').forEach(b=>{const n=FLAGN[b.dataset.fc];b.textContent='Flagged by students'+(n?` (${n})`:'')}));
 }
+let FLAGN={};   // open flags per subject, counted per item
+async function flagCounts(){try{const r=await SB.from('flags').select('subject_id,item').eq('status','open');if(r.error)return;const g={};(r.data||[]).forEach(x=>{(g[x.subject_id]=g[x.subject_id]||new Set()).add(x.item)});FLAGN={};Object.keys(g).forEach(k=>FLAGN[k]=g[k].size)}catch(e){}}
 function renderAdminList(){
   const box=$('#admList');if(!box)return;
   box.innerHTML=SUBS.length?SUBS.map(s=>{const ready=s.units.reduce((n,u)=>n+[1,2,3].filter(L=>LESIDS.has(u.id+'-L'+L)).length,0);
@@ -635,7 +647,7 @@ function renderAdminList(){
     <button class="btn ghost" data-psave="${s.id}" style="width:100%;margin-bottom:16px">Save category, date and units</button>
     ${AION()?`<div class="mrow" style="flex-wrap:wrap;margin-bottom:14px"><button class="btn blue" data-gen1="${s.id}" style="flex:1">Prepare level 1</button><button class="btn ghost" data-genall="${s.id}" style="flex:1">Prepare all levels</button></div>`:''}
     <div class="mrow" style="flex-wrap:wrap;margin-bottom:14px"><button class="btn ${AION()?'ghost':'blue'}" data-exp="${s.id}" style="flex:1">Download for AI</button><button class="btn ghost" data-impto="${s.id}" style="flex:1">Import into this course</button></div>
-    <div class="mrow" style="flex-wrap:wrap;margin-bottom:14px"><button class="btn ghost" data-rv="lessons|${s.id}" style="flex:1">Review lessons</button><button class="btn ghost" data-rv="images|${s.id}" style="flex:1">Images</button><button class="btn ghost" data-rv="pq|${s.id}" style="flex:1 1 100%">Past questions</button></div>
+    <div class="mrow" style="flex-wrap:wrap;margin-bottom:14px"><button class="btn ghost" data-rv="lessons|${s.id}" style="flex:1">Review lessons</button><button class="btn ghost" data-rv="images|${s.id}" style="flex:1">Images</button><button class="btn ghost" data-rv="pq|${s.id}" style="flex:1 1 100%">Past questions</button><button class="btn ghost" data-rv="flags|${s.id}" data-fc="${s.id}" style="flex:1 1 100%">Flagged by students${FLAGN[s.id]?` (${FLAGN[s.id]})`:''}</button></div>
     <span class="lbl">Study materials</span>${s.mats.length?`<ul class="mats">${s.mats.map(m=>`<li><span>${esc(m.name)}<br><small>${m.pages?`${m.pages} pages · `:''}${m.chars<1000?m.chars:Math.round(m.chars/1000)+'k'} characters</small></span><button class="linkb" data-mdel="${s.id}|${m.id}">Remove</button></li>`).join('')}</ul>`:'<p class="help">None yet, so lessons use standard textbook knowledge for the syllabus.</p>'}
     <label for="mf-${s.id}">Add materials</label><input type="file" id="mf-${s.id}" data-mf="${s.id}" multiple accept=".pdf,.docx,.txt,.md,.json,application/json,image/*">
     <button class="btn ghost" data-rm="${s.id}" style="width:100%;margin-top:14px">Remove subject</button></div>`}).join(''):'<p class="sync" style="margin-top:0">No subjects yet. Add one above.</p>';
@@ -996,10 +1008,13 @@ function begin(learn,rev){
 }
 
 /* ---------- theory questions ----------
-   The student writes an answer; it is marked against the question's key points. Each key point shows a green tick
-   if the answer covers it or a red cross if not, and earns TH_XP. With a Claude API key set, Claude judges each point
-   by meaning; otherwise the app looks for the point's key words and phrases (spelling slips allowed). */
-const TH_XP=5;
+   The student writes an answer; it is marked against the question's final answer and its key points.
+   The final answer alone is enough to earn TH_FA_XP and count the question as correct; each other key point covered
+   in the workings earns TH_XP more. The final answer is the question's "fa" list if it has one, otherwise its last key point.
+   With a Claude API key set, Claude judges by meaning; otherwise the app looks for key words and phrases (spelling slips allowed). */
+const TH_XP=5,TH_FA_XP=10;
+const thFinal=q=>Array.isArray(q.fa)&&q.fa.length?{kw:q.fa,pt:-1}:{kw:(q.pts[q.pts.length-1]||{}).kw||[],pt:q.pts.length-1};
+const thWork=q=>{const F=thFinal(q);return q.pts.map((_,i)=>i).filter(i=>i!==F.pt)};
 const thNorm=t=>String(t||'').toLowerCase().replace(/π/g,' pi ').replace(/ω/g,' w ').replace(/\bomega\b/g,' w ').replace(/τ/g,' tau ').replace(/δ/g,' delta ').replace(/σ/g,' sigma ').replace(/∞/g,' infinity ').replace(/√/g,' sqrt ').replace(/²/g,' 2 ').replace(/³/g,' 3 ').replace(/¹/g,' 1 ').replace(/[⁰⁴⁵⁶⁷⁸⁹]/g,c=>' '+'⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)+' ').replace(/½/g,' 1 2 ').replace(/⅓/g,' 1 3 ').replace(/¼/g,' 1 4 ').replace(/¾/g,' 3 4 ').replace(/[^a-z0-9]+/g,' ').trim();
 const TH_NEG=new Set(['not','non','no','never','isn','cannot','nor']);   // "not causal" doesn't count as saying "causal"
 const thStem=w=>w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w;
@@ -1012,41 +1027,52 @@ function thGap(toks,phrase){const segs=String(phrase).split('*').map(thToks).fil
   for(let st=at(segs[0],0,toks.length);st>=0;st=at(segs[0],st+1,toks.length)){let pos=st+segs[0].length,ok=true;
     for(const seg of segs.slice(1)){const f=at(seg,pos,pos+16);if(f<0){ok=false;break}pos=f+seg.length}if(ok)return true}return false}
 const thPoint=(toks,pt)=>(pt.kw||[]).some(alt=>String(alt).split('+').every(part=>part.includes('*')?thGap(toks,part):thHas(toks,part)));
-const thLocal=(q,text)=>{const toks=thToks(text);return q.pts.map(pt=>thPoint(toks,pt))};
+const thLocal=(q,text)=>{const toks=thToks(text);return{hit:q.pts.map(pt=>thPoint(toks,pt)),fin:thPoint(toks,{kw:thFinal(q).kw})}};
 async function thMark(q,text){
   if(AION()){try{const out=await ai(`You are marking a student's answer to an exam question in a university or secondary-school course.
 ${q.ctx?`Context given in the exam:\n${q.ctx}\n`:''}Question (${q.marks} mark${q.marks===1?'':'s'}):\n${q.p}\n
 Marking points:\n${q.pts.map((p,i)=>`${i+1}. ${p.t} (${p.m||1} mark${(p.m||1)===1?'':'s'})`).join('\n')}\n
 Model answer, for reference:\n${q.model||''}\n
+Correct final answer: ${Array.isArray(q.fa)&&q.fa.length?q.fa.join(' OR '):'the result or conclusion the model answer reaches'}\n
 Student's answer:\n<<<\n${text}\n>>>\n
+The student may give only the final answer, or the final answer with some or all of the working.
 For each marking point, decide whether the student's answer covers it correctly. Judge the meaning, not the exact words; accept correct equivalent working, notation and examples. A point the student states wrongly does not count.
-Return JSON: {"points":[true or false for each marking point, in order],"feedback":"one or two short sentences telling the student what to add or fix"}`,{json:true});
-    if(out&&Array.isArray(out.points)&&out.points.length===q.pts.length)return{hit:out.points.map(Boolean),fb:String(out.feedback||'').slice(0,400),by:'ai'}}catch(e){}}
-  return{hit:thLocal(q,text),fb:'',by:'kw'}}
-function thResult(q,res){const n=q.pts.length,got=res.hit.filter(Boolean).length,tot=q.pts.reduce((a,p)=>a+(p.m||1),0),gm=q.pts.reduce((a,p,i)=>a+(res.hit[i]?(p.m||1):0),0);
-  return{n,got,tot,gm,ok:tot?gm/tot>=0.6:false,html:`<p class="meta">You covered <b>${got} of ${n}</b> key point${n===1?'':'s'} (${gm} of ${tot} mark${tot===1?'':'s'})${res.by==='ai'?' · marked by AI':''}.</p>
-  <ul class="thpts">${q.pts.map((p,i)=>`<li class="${res.hit[i]?'ok':'no'}"><span class="mk" aria-label="${res.hit[i]?'Covered':'Missing'}">${res.hit[i]?'✓':'✗'}</span><span>${esc(p.t)}${(p.m||1)>1?` <small>(${p.m} marks)</small>`:''}</span></li>`).join('')}</ul>
+Also decide whether the student states the correct final answer, with or without working.
+Return JSON: {"final":true or false,"points":[true or false for each marking point, in order],"feedback":"one or two short sentences telling the student what to add or fix"}`,{json:true});
+    if(out&&Array.isArray(out.points)&&out.points.length===q.pts.length){const loc=typeof out.final==='boolean'?null:thLocal(q,text);
+      return{hit:out.points.map(Boolean),fin:loc?loc.fin:out.final,fb:String(out.feedback||'').slice(0,400),by:'ai'}}}catch(e){}}
+  return Object.assign(thLocal(q,text),{fb:'',by:'kw'})}
+function thResult(q,res){const F=thFinal(q),wk=thWork(q);
+  if(F.pt>=0){res.hit[F.pt]=!!(res.hit[F.pt]||res.fin);res.fin=res.hit[F.pt]}   // the last key point is the final answer
+  const fin=!!res.fin,n=q.pts.length,got=res.hit.filter(Boolean).length,wgot=wk.filter(i=>res.hit[i]).length,tot=q.pts.reduce((a,p)=>a+(p.m||1),0),gm=q.pts.reduce((a,p,i)=>a+(res.hit[i]?(p.m||1):0),0);
+  const li=(ok,body,xp)=>`<li class="${ok?'ok':'no'}"><span class="mk" aria-label="${ok?'Covered':'Missing'}">${ok?'✓':'✗'}</span><span>${body}${ok&&xp?` <small>+${xp} XP</small>`:''}</span></li>`;
+  const pt=i=>`${esc(q.pts[i].t)}${(q.pts[i].m||1)>1?` <small>(${q.pts[i].m} marks)</small>`:''}`;
+  return{n,got,tot,gm,fin,wgot,wn:wk.length,xp:(fin?TH_FA_XP:0)+TH_XP*wgot,ok:fin||(tot?gm/tot>=0.6:false),html:`<p class="meta">You covered <b>${got} of ${n}</b> key point${n===1?'':'s'} (${gm} of ${tot} mark${tot===1?'':'s'})${res.by==='ai'?' · marked by AI':''}.</p>
+  <ul class="thpts">${li(fin,`<b>Final answer${F.pt<0?`:</b> ${esc(q.fa[0])}`:`:</b> ${pt(F.pt)}`}`,TH_FA_XP)}</ul>
+  ${wk.length?`<span class="lbl" style="margin-top:10px">Workings: ${wgot} of ${wk.length} key point${wk.length===1?'':'s'}</span><ul class="thpts">${wk.map(i=>li(res.hit[i],pt(i),TH_XP)).join('')}</ul>`:''}
   ${res.fb?`<p class="help" style="margin:8px 0 0">${esc(res.fb)}</p>`:''}<div class="sec"><h4>Model answer</h4><p class="model">${esc(q.model||'')}</p></div>`}}
 // view: null for the live lesson, or {nextTxt, go} when looking back (re-marking then changes nothing).
 function thRender(s,view){
   const q=s.q,a=$('#act');a.className='act';$('#tmr').hidden=true;
   $('#stage').innerHTML=`<div class="pop"><span class="kind">${view?'Looking back · ':''}Theory question · ${q.marks} mark${q.marks===1?'':'s'}<em>${s.d||q.d||'medium'}</em></span>${q.ctx?`<div class="thctx">${esc(q.ctx)}</div>`:''}<p class="qp">${esc(q.p)}</p>${figHtml(q.img)}
-  <textarea class="ans thans" id="tha" rows="7" placeholder="Write your answer as you would in the exam." aria-label="Your answer">${esc(s.txt||'')}</textarea>
-  <p class="help" style="margin:6px 0 0">${q.pts.length} key point${q.pts.length===1?'':'s'} to cover.${view?' Re-marking doesn\'t change your score or XP.':` You earn ${TH_XP} XP for each one you include.`}</p></div>`;
+  <label class="lbl" for="tha" style="margin-top:12px">Final answer(s)</label>
+  <textarea class="ans thans" id="tha" rows="7" placeholder="Type workings in full or part to earn more XP" aria-label="Final answer(s), with any workings">${esc(s.txt||'')}</textarea>
+  <p class="help" style="margin:6px 0 0">${view?'Re-marking doesn\'t change your score or XP.':(()=>{const w=thWork(q).length;return `The correct final answer alone earns ${TH_FA_XP} XP.${w?` Each of the ${w} key point${w===1?'':'s'} in your workings earns ${TH_XP} XP more.`:''}`})()}</p></div>`;
   math($('#stage'));
   a.innerHTML=`<button class="btn blue" id="chk" disabled>Mark my answer</button>${view?`<button class="linkb" id="vn" style="display:block;margin:8px auto 0">${view.nextTxt==='Next'?'Skip to next':view.nextTxt}</button>`:''}`;
   if(view)$('#vn').onclick=view.go;
-  const ta=$('#tha'),chk=$('#chk');ta.oninput=()=>{chk.disabled=ta.value.trim().length<3;if(!view)s.txt=ta.value};chk.disabled=ta.value.trim().length<3;
-  chk.onclick=async()=>{const text=ta.value.trim();if(text.length<3)return;chk.disabled=true;ta.disabled=true;chk.textContent='Marking…';
+  const ta=$('#tha'),chk=$('#chk');ta.oninput=()=>{chk.disabled=!ta.value.trim();if(!view)s.txt=ta.value};chk.disabled=!ta.value.trim();
+  chk.onclick=async()=>{const text=ta.value.trim();if(!text)return;chk.disabled=true;ta.disabled=true;chk.textContent='Marking…';
     const res=await thMark(q,text);if(!R||$('#tha')!==ta)return;   // left the screen while marking
     const r=thResult(q,res);let gain=0;
     if(!view){s.txt=text;record(s,r.ok,0);s.ans=true;setBack();
       if(r.ok){R.combo++;R.best=Math.max(R.best,R.combo);if(!s.retry)R.ok++}else R.combo=0;
-      gain=TH_XP*r.got;R.xp+=gain;bar(R.i+1)}
+      gain=r.xp;R.xp+=gain;bar(R.i+1)}
     $('#stage').insertAdjacentHTML('beforeend',`<div class="explain pop">${r.html}</div>`);math($('#stage .explain'));
-    a.className='act '+(r.got===r.n?'ok':r.got?'late':'bad');
-    const h=r.got===r.n?'All key points covered!':r.got?`${r.got} of ${r.n} key points`:'No key points yet. See the model answer.';
-    a.innerHTML=`<div class="fb"><h3>${h}${!view&&gain?`<span class="gain">+${gain} XP</span>`:''}</h3></div><button class="btn ${r.got===r.n?'ok':r.got?'sun':'bad'}" id="nx">${view?view.nextTxt:'Continue'}</button>`;
+    const full=r.fin&&r.got===r.n,cls=full?'ok':r.fin||r.got?'sun':'bad';
+    a.className='act '+(full?'ok':r.fin||r.got?'late':'bad');
+    const h=full?'Full marks!':r.fin?(r.wn?'Final answer correct. Add workings for more XP.':'Final answer correct!'):r.got?`${r.got} of ${r.n} key points`:'Not yet. See the model answer.';
+    a.innerHTML=`<div class="fb"><h3>${h}${!view&&gain?`<span class="gain">+${gain} XP</span>`:''}</h3></div><button class="btn ${cls}" id="nx">${view?view.nextTxt:'Continue'}</button>`;
     $('#nx').onclick=view?view.go:()=>{R.i++;step()};
     $('.explain').scrollIntoView({behavior:'smooth',block:'start'})};
 }
@@ -1064,7 +1090,7 @@ function factBody(f){
 function workedHtml(f,n){const w=f.w,all=n>=w.steps.length;
   return `<ol class="steps">${w.steps.slice(0,n).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${all?`<p class="ansline">Answer: ${esc(w.ans)}</p>${w.why?`<div class="sec"><h4>Why this is correct</h4><p>${esc(w.why)}</p></div>`:''}${w.mistakes.length?`<div class="sec mis"><h4>Common mistakes</h4><ul class="bul">${w.mistakes.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}`:''}`}
 function step(){
-  accrue();stopTimer();R.v=null;const s=R.steps[R.i];bar(R.i);$('#tmr').hidden=true;if(!s)return finish();setBack();
+  accrue();stopTimer();R.v=null;const s=R.steps[R.i];bar(R.i);$('#tmr').hidden=true;setFlag(s?flagTarget(s.t,s.f,s.q):null);if(!s)return finish();setBack();
   const a=$('#act');a.className='act';
   if(s.k==='learn'){
     if(s.f.w){
@@ -1087,7 +1113,7 @@ function step(){
   math($('#stage'));a.innerHTML='<button class="btn blue" id="chk" disabled>Check</button>';$('#chk').onclick=check;
   $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pick=b.dataset.v;$('#chk').disabled=false});
   const inp=$('#ans');if(inp){inp.oninput=()=>$('#chk').disabled=!inp.value.trim();inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim())check()};inp.focus()}
-  startTimer(d==='hard'?45:30,s.el||0);
+  startTimer(tlim(d),s.el||0);
 }
 /* timer: limit → 5s big countdown → 30s grace (no XP) → "taking a while" popup */
 function startTimer(lim,off){off=off||0;T={t0:Date.now()-off*1000,lim,popped:off>=lim+30,id:setInterval(tick,200)};tick()}
@@ -1105,7 +1131,7 @@ $('#mno').onclick=()=>{$('#modal').hidden=true};
 $('#myes').onclick=()=>{$('#modal').hidden=true;showSolution()};
 function solHtml(s){const q=s.q,f=s.f,right=q.k==='mc'?q.o[q.a]:q.k==='tf'?(q.a?'True':'False'):q.a[0];
   return `<p class="ansline" style="margin-top:0">Answer: ${esc(right)}</p>${q.steps&&q.steps.length?`<div class="sec"><h4>Step by step</h4><ol class="steps">${q.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div>`:''}<div class="sec"><h4>Why this is correct</h4><p>${esc(q.sol||f.why||f.t)}</p></div>${f.ex&&!q.sol?`<div class="sec ex"><h4>Example</h4><p>${esc(f.ex)}</p></div>`:''}${f.w&&f.w.mistakes.length?`<div class="sec mis"><h4>Common mistakes</h4><ul class="bul">${f.w.mistakes.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}`}
-function record(s,ok,e){const th=s.q&&s.q.k==='th';R.seen.add(s.f.id);R.tops.add(s.t.id);if(!s.retry)R.n++;if(!th)R.times.push([e,s.d==='hard']);if(!ok){R.combo=0;R.wrong.add(s.f.id);if(!th)R.steps.push(Object.assign({},s,{retry:true,el:0,ans:false,ord:null}))}}
+function record(s,ok,e){const th=s.q&&s.q.k==='th';R.seen.add(s.f.id);R.tops.add(s.t.id);if(!s.retry)R.n++;if(!th)R.times.push([e,s.d||'medium']);if(!ok){R.combo=0;R.wrong.add(s.f.id);if(!th)R.steps.push(Object.assign({},s,{retry:true,el:0,ans:false,ord:null}))}}
 function showSolution(){
   const s=R.steps[R.i],e=elapsed();stopTimer();record(s,false,e);s.ans=true;setBack();bar(R.i+1);
   $('#tmr').className='tmr over';$('#tmr').textContent=fmtS(e);
@@ -1147,7 +1173,7 @@ $('#lback').onclick=()=>{
   stopTimer();if(R.i>0)viewStep(R.i-1);
 };
 function viewStep(idx){
-  const s=R.steps[idx];if(!s)return backToLive();
+  const s=R.steps[idx];if(!s)return backToLive();setFlag(flagTarget(s.t,s.f,s.q));
   if(R.closed)R.lt=null;else{accrue();R.pi=idx}
   R.v=idx;stopTimer();$('#tmr').hidden=true;show('lesson');bar(R.closed?R.steps.length:R.i);setBack();
   const last=idx+1>=livePos(),nextTxt=last?(R.closed?'Back to results':'Back to where I was'):'Next';
@@ -1192,7 +1218,7 @@ function finish(){
   S.xp+=R.xp;S.hist[d]=before+R.xp;S.n++;
   const wk=weekKey();if(S.wk!==wk){S.wk=wk;S.wxp=0}S.wxp+=R.xp;
   const cut=addDays(d,-90);Object.keys(S.hist).forEach(k=>{if(k<cut)delete S.hist[k]});
-  R.times.forEach(([e,h])=>{const b=S.tm[h?'h':'e'];b[0]+=e;b[1]++});
+  R.times.forEach(([e,d])=>{const b=S.tm[TMK[d]||'m'];b[0]+=e;b[1]++});
   if(newlyMet)msgs.push(['good',`Today's target met! That's ${S.tdays} target day${S.tdays>1?'s':''}.`]);
   else if(tpNow.tm&&tpNow.pct<1)msgs.push(['',`Today's target: ${Math.round(tpNow.pct*100)}% done, ${tpNow.left} session${tpNow.left===1?'':'s'} to go.`]);
   if(!tpNow.tm&&before<S.goal&&S.hist[d]>=S.goal)msgs.push(['good','Daily XP goal reached.']);
@@ -1204,8 +1230,8 @@ function finish(){
   if(keep)msgs.push(['',keep.txt]);
   R.tops.forEach(id=>{const t=byId(id);if(t&&advance(t))msgs.push(['',`Level ${P(id).lvl} of ${t.title} unlocked. Expect harder questions${P(id).lvl>=3?' and exam-standard problems':''}.`])});
   if(R.late)msgs.push(['bad',`${R.late} correct answer${R.late>1?'s were':' was'} too slow to earn XP.`]);
-  const grp=h=>R.times.filter(x=>x[1]===h).map(x=>x[0]);
-  [[false,'Easy and medium'],[true,'Hard']].forEach(([h,l])=>{const a=grp(h);if(!a.length)return;const avg=a.reduce((x,y)=>x+y,0)/a.length,[c,m]=pace(avg,h);msgs.push([c==='good'?'good':c==='bad'?'bad':'',`${l}: ${fmtS(avg)} average. ${m}`])});
+  const grp=d=>R.times.filter(x=>x[1]===d).map(x=>x[0]);
+  [['easy','Easy'],['medium','Medium'],['hard','Hard']].forEach(([d,l])=>{const a=grp(d);if(!a.length)return;const avg=a.reduce((x,y)=>x+y,0)/a.length,[c,m]=pace(avg,d);msgs.push([c==='good'?'good':c==='bad'?'bad':'',`${l}: ${fmtS(avg)} average. ${m}`])});
   save();pushBoard();
   const acc=R.n?Math.round(100*R.ok/R.n):100,avgAll=R.times.length?R.times.reduce((x,y)=>x+y[0],0)/R.times.length:0;
   $('#done').innerHTML=`<div class="dwrap pop">${MEDAL}<h1>${perfect?'Perfect lesson!':'Lesson complete'}</h1><div class="tiles"><div><b>+${R.xp}</b><span>XP earned</span></div><div><b>${acc}%</b><span>First try</span></div><div><b>${fmtS(avgAll)}</b><span>Avg time</span></div><div><b>${R.best}</b><span>Best combo</span></div></div>${perfect?'<div class="msg good">No mistakes and always in time: +10 bonus XP.</div>':''}${msgs.map(([c,m])=>`<div class="msg ${c}">${esc(m)}</div>`).join('')}${quizNow?'<button class="btn blue" id="toquiz">Take the topic quiz</button><button class="btn ghost" id="back">Later</button>':keep?'<button class="btn blue" id="more">Keep going</button><button class="btn ghost" id="back">Done for now</button>':'<button class="btn blue" id="back">Continue</button>'}<button class="linkb" id="lookback" style="display:block;margin:10px auto 0">Look back over this lesson</button></div>`;
@@ -1255,7 +1281,7 @@ function pqPanel(s){const vis0=(PQ[s.id]||[]).filter(r=>r.q&&!r.q.hidden),vis=vi
   return `${all.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Past questions</b> <small style="color:var(--mute)">${done} of ${all.length} tried</small><p class="help" style="margin:4px 0 10px">Real exam questions, timed like the rest. New and previously missed questions come first.</p><button class="btn blue" data-pqgo="" style="width:100%">Practise 10 questions</button>${years.length?`<div class="chips">${years.map(y=>`<button class="chip" data-pqgo="${esc(y)}">${esc(y)}</button>`).join('')}</div>`:''}</div>`:''}
   ${th.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Theory questions</b> <small style="color:var(--mute)">${tdone} of ${th.length} tried</small><p class="help" style="margin:4px 0 10px">Write your answer, then see which key points you covered, with a green tick or red cross for each, and the model answer. You earn ${TH_XP} XP for each key point you include. Not timed.</p><button class="btn blue" data-thgo="1" style="width:100%">Answer 3 theory questions</button></div>`:''}
   ${prm.length||prt.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Practice questions</b> <small style="color:var(--mute)">${prDone} of ${prm.length+prt.length} tried</small><p class="help" style="margin:4px 0 10px">Extra exam-style problems written for this course (not from past papers). New and previously missed ones come first.</p>${prm.length?'<button class="btn blue" data-prgo="mc" style="width:100%">Practise 10 questions</button>':''}${prt.length?`<button class="btn ${prm.length?'ghost':'blue'}" data-prgo="th" style="width:100%;margin-top:8px">Answer 3 theory questions</button>`:''}</div>`:''}`}
-function pqQ(r){const q=r.q;if(q.k==='th')return Object.assign({k:'th',p:q.p,ctx:q.ctx||'',marks:q.marks||q.pts.reduce((a,p)=>a+(p.m||1),0),pts:q.pts,model:q.model||'',d:q.d||'medium'},q.img?{img:q.img}:{});return Object.assign({k:'mc',p:q.p,o:q.o,a:q.a,d:q.d||'medium',sol:q.sol||'',steps:q.steps||null},q.img?{img:q.img}:{})}
+function pqQ(r){const q=r.q;if(q.k==='th')return Object.assign({k:'th',p:q.p,ctx:q.ctx||'',marks:q.marks||q.pts.reduce((a,p)=>a+(p.m||1),0),pts:q.pts,model:q.model||'',d:q.d||'medium'},q.img?{img:q.img}:{},Array.isArray(q.fa)&&q.fa.length?{fa:q.fa}:{});return Object.assign({k:'mc',p:q.p,o:q.o,a:q.a,d:q.d||'medium',sol:q.sol||'',steps:q.steps||null},q.img?{img:q.img}:{})}
 async function startPQ(sid,year,kind){
   const s=SUBS.find(x=>x.id===sid);if(!s)return;await loadPQ(sid);await loadImages(sid).catch(()=>{});
   const pr=kind==='pmc'||kind==='pth';if(kind==='pth')kind='th';else if(kind==='pmc')kind=null;
@@ -1267,12 +1293,65 @@ async function startPQ(sid,year,kind){
   runSteps(pick.map(r=>{const q=pqQ(r);return{k:'ask',t,q,pq:true,f:{id:'pq:'+r.id,t:q.p,why:q.k==='th'?q.model:q.sol,ex:'',q:[q],L:2}}}));
 }
 
-/* ---------- admin review: lessons, images, past questions ---------- */
+/* ---------- flagging facts and questions ----------
+   Students flag a fact, worked example or question with a reason (plus optional details). Admins see the flags
+   under Admin → subject → Flagged by students. Only shared content can be flagged: prepared lessons and past questions. */
+let FLAGS=new Map(),FLAGCUR=null;   // this student's open flags: item -> reason
+const FR_FACT=['The information is wrong','It is hard to understand','The example is wrong or unhelpful','Typo, spelling or formatting problem','Maths or symbols don\'t display properly','Picture is missing, wrong or unclear','Not on my syllabus','Something else'];
+const FR_WORK=['A step or the answer is wrong','A step is missing or hard to follow','Typo, spelling or formatting problem','Maths or symbols don\'t display properly','Picture is missing, wrong or unclear','Not on my syllabus','Something else'];
+const FR_Q=['The marked answer is wrong','More than one answer is correct','None of the options is correct','The question is unclear','The explanation is wrong or doesn\'t help','Typo, spelling or formatting problem','Maths or symbols don\'t display properly','Picture is missing, wrong or unclear','Something else'];
+const FR_TH=['My answer was marked wrongly','The final answer or model answer is wrong','The question is unclear','Typo, spelling or formatting problem','Maths or symbols don\'t display properly','Picture is missing, wrong or unclear','Something else'];
+async function loadFlags(){try{const r=await SB.from('flags').select('item,reason,status').eq('user_id',UID);if(!r.error)FLAGS=new Map((r.data||[]).filter(x=>x.status==='open').map(x=>[x.item,x.reason]))}catch(e){}}
+const qRight=q=>q.k==='mc'?(q.o||[])[q.a]:q.k==='tf'?(q.a?'True':'False'):q.k==='in'?(q.a||[])[0]:'';
+function qSnap(q){if(q.k==='th')return `${q.ctx?q.ctx+'\n':''}${q.p}\nFinal answer: ${Array.isArray(q.fa)&&q.fa.length?q.fa[0]:'(last key point)'}\nModel answer: ${q.model||''}`;
+  return `${q.p}${q.k==='mc'?'\nOptions: '+(q.o||[]).join(' | '):''}\nMarked answer: ${qRight(q)}`}
+// What a step shows, as something a student can flag: {sid, item, kind, snap, reasons, name}, or null.
+function flagTarget(t,f,q){
+  if(!t||!f||!t.sub||t.sub.builtin||!SUBS.some(x=>x.id===t.sub.id))return null;
+  const fid=String(f.id||'');
+  if(fid.startsWith('pq:')){q=q||(f.q||[])[0];if(!q)return null;const th=q.k==='th';
+    return{sid:t.sub.id,item:'P|'+fid.slice(3),kind:th?'theory':'question',snap:qSnap(q),reasons:th?FR_TH:q.k==='mc'?FR_Q:FR_Q.filter(x=>!/option/.test(x)),name:th?'theory question':'question'}}
+  if(!t.unit)return null;
+  const parts=fid.split(':'),j=parts.pop(),L=parts.pop(),key=t.id+'-L'+L;
+  if(!LES[key]||!LES[key][+j])return null;   // only prepared lessons are shared; a level written just for one student isn't
+  if(q){const qi=(f.q||[]).indexOf(q);if(qi<0)return null;
+    return{sid:t.sub.id,item:`L|${key}|${j}|${qi}`,kind:'question',snap:qSnap(q),reasons:q.k==='mc'?FR_Q:FR_Q.filter(x=>!/option/.test(x)),name:'question'}}
+  return f.w?{sid:t.sub.id,item:`L|${key}|${j}`,kind:'worked',snap:`${f.t}\nSteps: ${f.w.steps.join(' / ')}\nAnswer: ${f.w.ans}`,reasons:FR_WORK,name:'worked example'}
+    :{sid:t.sub.id,item:`L|${key}|${j}`,kind:'fact',snap:`${f.t}${f.why?'\nWhy: '+f.why:''}${f.ex?'\nExample: '+f.ex:''}`,reasons:FR_FACT,name:'fact'};
+}
+function setFlag(tg){FLAGCUR=tg;const b=$('#lflag');if(!b)return;b.hidden=!tg;if(tg){const on=FLAGS.has(tg.item);b.classList.toggle('on',on);b.setAttribute('aria-label',on?'You flagged this. Change or remove your flag':'Flag a problem with this '+tg.name)}}
+$('#lflag').onclick=()=>{if(FLAGCUR)openFlag(FLAGCUR,()=>setFlag(FLAGCUR))};
+function openFlag(tg,after){
+  if(!tg)return;const m=$('#fmodal'),fm=$('#fform'),cur=FLAGS.get(tg.item);
+  fm.innerHTML=`<h3 id="fh">${cur?'You flagged this':'Flag this '+tg.name}</h3><p>${cur?'Change the reason, or remove your flag.':'What\'s wrong with it? An admin will check it.'}</p>
+    <div class="freasons" role="radiogroup" aria-label="Reason">${tg.reasons.map(x=>`<label class="chk"><input type="radio" name="fr" value="${esc(x)}"${cur===x?' checked':''}><span>${esc(x)}</span></label>`).join('')}</div>
+    <textarea class="txt" id="fnote" maxlength="500" placeholder="Add details (optional)" aria-label="Details"></textarea>
+    <p class="warnt" id="ferr" hidden style="margin:0 0 10px"></p>
+    <div class="two"><button type="button" class="btn ghost" id="fcancel">Cancel</button><button class="btn blue" id="fsend">${cur?'Update':'Send'}</button></div>
+    ${cur?'<button type="button" class="linkb" id="funflag">Remove my flag</button>':''}`;
+  m.hidden=false;
+  const close=()=>{m.hidden=true;if(after)after()},err=t=>{const e=$('#ferr');e.textContent=t;e.hidden=false};
+  const fail=e=>{const msg=String(e&&(e.message||e.code)||'');err(/flags|relation|schema cache/i.test(msg)?'Flagging isn\'t set up yet. Ask your admin to update the database.':'Couldn\'t send. Check your connection and try again.')};
+  $('#fcancel').onclick=close;
+  m.onclick=e=>{if(e.target===m)close()};
+  fm.onkeydown=e=>{if(e.key==='Escape')close()};
+  fm.onsubmit=async e=>{e.preventDefault();const sel=fm.querySelector('input[name="fr"]:checked'),note=$('#fnote').value.trim().slice(0,500);
+    if(!sel)return err('Pick a reason.');if(sel.value==='Something else'&&!note)return err('Tell us what\'s wrong in the details box.');
+    const btn=$('#fsend');btn.disabled=true;
+    try{const r=await SB.from('flags').upsert({user_id:UID,subject_id:tg.sid,item:tg.item,kind:tg.kind,reason:sel.value,note:note||null,snap:tg.snap.slice(0,1000),status:'open',created_at:new Date().toISOString()},{onConflict:'user_id,item'});
+      if(r.error)throw r.error;FLAGS.set(tg.item,sel.value);close();toast('Thanks for flagging it. An admin will check it.')}catch(e){btn.disabled=false;fail(e)}};
+  const un=$('#funflag');if(un)un.onclick=async()=>{un.disabled=true;
+    try{const r=await SB.from('flags').delete().eq('user_id',UID).eq('item',tg.item);if(r.error)throw r.error;FLAGS.delete(tg.item);close();toast('Flag removed.')}catch(e){un.disabled=false;fail(e)}};
+  const first=fm.querySelector('input[name="fr"]:checked')||fm.querySelector('input[name="fr"]');if(first)first.focus();
+}
+
+/* ---------- admin review: lessons, images, past questions, flags ---------- */
 let RV={sid:null,mode:null,filter:'all',shown:20};
 async function renderReview(sid,mode){
   const s=SUBS.find(x=>x.id===sid);if(!s)return renderAdmin();RV.sid=sid;RV.mode=mode;RV.shown=20;RV.filter='all';
-  loading(true,'Loading…');try{LOADED.delete(sid);IMGLOADED.delete(sid);await loadLessons(sid);await loadPQ(sid,true)}catch(e){}loading(false);
-  const title={lessons:'Review lessons',images:'Images',pq:'Past questions'}[mode];
+  loading(true,'Loading…');try{LOADED.delete(sid);IMGLOADED.delete(sid);await loadLessons(sid);await loadPQ(sid,true)}catch(e){}
+  if(mode==='flags')await loadSubjFlags(sid);loading(false);RV.filter=mode==='flags'?'open':'all';
+  const title={lessons:'Review lessons',images:'Images',pq:'Past questions',flags:'Flagged by students'}[mode];
   $('#rev').innerHTML=`<div class="subhead"><button class="back" id="rback" aria-label="Back">${BACK}</button><h1>${title} <span class="flag">${esc(s.title)}</span></h1></div><div id="rvbody"></div>`;
   $('#rback').onclick=renderAdmin;show('rev');paintReview();
 }
@@ -1281,6 +1360,7 @@ function usage(sid){const n={};const add=id=>{if(id)n[id]=(n[id]||0)+1};
   (PQ[sid]||[]).forEach(r=>r.q&&!r.q.hidden&&add(r.q.img));return n}
 function qReview(q,key,flag){
   if(q.k==='th')return `${q.ctx?`<div class="thctx">${esc(q.ctx)}</div>`:''}<p style="font-weight:800;margin:8px 0 4px">${esc(q.p)} <span class="badge2">Theory · ${q.marks||''} mark${q.marks===1?'':'s'}</span>${flag||''}</p>${figHtml(q.img)}
+    <p class="help" style="margin:6px 0 0"><b>Final answer:</b> ${Array.isArray(q.fa)&&q.fa.length?esc(q.fa.join(' · ')):'not set, so the last key point counts as the final answer'}</p>
     <ul class="thpts">${(q.pts||[]).map(p=>`<li class="ok"><span class="mk">✓</span><span>${esc(p.t)}${(p.m||1)>1?` <small>(${p.m} marks)</small>`:''}<small style="display:block;color:var(--mute)">Key words: ${esc((p.kw||[]).join(' · '))}</small></span></li>`).join('')}</ul>
     <div class="sec"><h4>Model answer</h4><p class="model">${esc(q.model||'')}</p></div>`;
   const opts=q.k==='mc'?q.o.map((o,i)=>`<button class="ro${i===q.a?' right':''}" data-setans="${key}|${i}">${i===q.a?'✓ ':''}${esc(o)}</button>`).join(''):q.k==='tf'?`<p><b>Answer:</b> ${q.a?'True':'False'}</p>`:`<p><b>Accepted answers:</b> ${esc(q.a.join(', '))}</p>`;
@@ -1293,6 +1373,19 @@ function paintReview(){
       const lv=[1,2,3].map(L=>[L,LES[u.id+'-L'+L]]).filter(x=>x[1]&&(!aiOnly||x[1].some(f=>f.ai&&!f.hidden)));if(aiOnly&&!lv.length)return '';
       return `<details class="unitd"${aiOnly?' open':''}><summary>${esc(u.name)} · ${aiOnly?`${lv.reduce((n,x)=>n+x[1].filter(f=>f.ai&&!f.hidden).length,0)} to check`:`${lv.length} of 3 levels`}</summary>${lv.length?'':'<p class="help">No levels prepared yet.</p>'}${lv.map(([L,items])=>`<h4 style="font:600 17px Fredoka,sans-serif;margin:14px 0 8px">Level ${L} ${AION()?`<button class="linkb" data-regen="${u.id}|${L}">Rewrite this level</button>`:''}</h4>`+items.map((f,j)=>aiOnly&&!(f.ai&&!f.hidden)?'':`<div class="rcard${f.hidden?' off':''}"><div class="meta2">${f.w?'Worked example':'Fact'} ${j+1}${f.hidden?' · removed':''}${f.ai?'<span class="badge2">Written by AI</span>':''}</div><p style="margin:0">${esc(f.t)}</p>${figHtml(f.img)}${f.w?`<ol class="steps">${f.w.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol><p><b>Answer:</b> ${esc(f.w.ans)}</p>`:`${f.why?`<p class="help" style="margin:6px 0 0"><b>Why:</b> ${esc(f.why)}</p>`:''}${f.ex?`<p class="help" style="margin:4px 0 0"><b>Example:</b> ${esc(f.ex)}</p>`:''}`}${(f.q||[]).map((q,qi)=>qReview(q,`L|${u.id}-L${L}|${j}|${qi}`)).join('')}<div class="rbtns">${f.ai&&!f.hidden?`<button class="btn ok" data-aiok="${u.id}-L${L}|${j}">Looks right</button>`:''}<button class="btn blue" data-edit="L|${u.id}-L${L}|${j}">Edit</button><button class="btn ghost" data-hide="${u.id}-L${L}|${j}">${f.hidden?'Restore':'Remove'}</button></div></div>`).join('')).join('')}</details>`}).join('')+(aiOnly&&!nAI?'<p class="sync">Nothing left to check.</p>':'');
     box.querySelectorAll('[data-lf]').forEach(b=>b.onclick=()=>{RV.filter=b.dataset.lf;keepScroll(paintReview)});
+  }else if(RV.mode==='flags'){
+    const fl=RV.flags,st=RV.filter==='fixed'?'fixed':'open',g={};
+    if(!fl){box.innerHTML='<p class="sync">Couldn\'t load flags. If this is the first time, run the latest supabase/schema.sql in Supabase (SQL Editor), then try again.</p>';return}
+    fl.forEach(x=>{const k=x.status+'|'+x.item;(g[k]=g[k]||{item:x.item,kind:x.kind,status:x.status,list:[]}).list.push(x)});
+    const all=Object.values(g),groups=all.filter(x=>x.status===st).sort((a,b)=>b.list.length-a.list.length||String(b.list[0].created_at).localeCompare(a.list[0].created_at));
+    const nO=all.filter(x=>x.status==='open').length,nF=all.length-nO;
+    box.innerHTML=`<div class="tabs"><button data-ff="open" class="${st==='open'?'on':''}">To check (${nO})</button><button data-ff="fixed" class="${st==='fixed'?'on':''}">Fixed (${nF})</button></div>
+      <p class="sync" style="margin:0 18px 12px">${st==='open'?'Facts and questions students have flagged, most-flagged first. Tap an option to make it the correct answer, or <b>Edit</b> to fix it, then tap <b>Mark as fixed</b>.':'Flags you\'ve marked as fixed. If a student flags the same item again, it comes back to To check.'}</p>
+      <div style="margin:0 14px">${groups.map(gr=>flagCard(s,gr)).join('')||`<p class="sync">${st==='open'?'Nothing flagged right now.':'Nothing here yet.'}</p>`}</div>`;
+    box.querySelectorAll('[data-ff]').forEach(b=>b.onclick=()=>{RV.filter=b.dataset.ff;keepScroll(paintReview)});
+    box.querySelectorAll('[data-ffix],[data-freopen]').forEach(b=>b.onclick=async()=>{const fix=!!b.dataset.ffix,item=fix?b.dataset.ffix:b.dataset.freopen,from=fix?'open':'fixed',to=fix?'fixed':'open';
+      try{chk(await SB.from('flags').update({status:to}).eq('subject_id',s.id).eq('item',item).eq('status',from));RV.flags.forEach(x=>{if(x.item===item&&x.status===from)x.status=to});
+        if(FLAGN[s.id]!=null)FLAGN[s.id]=Math.max(0,FLAGN[s.id]+(fix?-1:1));toast(fix?'Marked as fixed.':'Moved back to To check.')}catch(e){toast(errMsg(e))}keepScroll(paintReview)});
   }else if(RV.mode==='images'){
     const n=usage(s.id),list=Object.values(IMGS).filter(m=>(m.subject_id||m.sid)===s.id);
     box.innerHTML=`<p class="sync" style="margin:0 18px 12px">${list.length} image${list.length===1?'':'s'} taken from materials and past questions. Replace any with a better JPG; lessons and questions using it update automatically. Captions show under each image.</p>`+(list.length?`<div class="igrid">${list.map(m=>`<div class="icard"><img src="${imgUrl(m.id)}" alt="${esc(m.caption||'')}" data-zoom="${m.id}" loading="lazy"><small>${esc(m.src||'')}</small><small>${n[m.id]?`Used ${n[m.id]} time${n[m.id]>1?'s':''}`:'Not used yet'}</small><input class="txt" data-cap="${m.id}" value="${esc(m.caption||'')}" placeholder="Caption" aria-label="Caption"><label class="btn ghost" style="text-align:center;display:block">Replace with JPG<input type="file" accept="image/jpeg,.jpg,.jpeg,image/*" data-rep="${m.id}" hidden></label><button class="btn ghost" data-rmimg="${m.id}">Remove</button></div>`).join('')}</div>`:'<p class="sync">No images yet. Upload PDFs, Word files or photos with diagrams in Admin.</p>');
@@ -1317,6 +1410,30 @@ function paintReview(){
   }
   math(box);bindReview(s);
 }
+async function loadSubjFlags(sid){RV.flags=null;
+  try{const r=await SB.from('flags').select('id,user_id,item,kind,reason,note,snap,status,created_at').eq('subject_id',sid).order('created_at',{ascending:false}).limit(2000);if(r.error)return;RV.flags=r.data||[];
+    const ids=[...new Set(RV.flags.map(x=>x.user_id))],nk={};
+    for(let i=0;i<ids.length;i+=100){const q=await SB.from('leaderboard').select('id,nickname').in('id',ids.slice(i,i+100));(q.data||[]).forEach(x=>nk[x.id]=x.nickname)}
+    RV.flags.forEach(x=>x.nick=nk[x.user_id]||'A student')}catch(e){}}
+function flagCard(s,gr){
+  const p=gr.item.split('|'),fixed=gr.status==='fixed',n=gr.list.length;let where='',body='',edit='',hide='';
+  if(p[0]==='L'){const items=LES[p[1]],f=items&&items[+p[2]],u=s.units.find(x=>p[1].startsWith(x.id+'-L')),L=p[1].split('-L').pop();
+    where=`${u?esc(u.name)+' · ':''}Level ${L} · ${p[3]!=null?`Question ${+p[3]+1} of ${f&&f.w?'worked example':'fact'} ${+p[2]+1}`:`${f&&f.w?'Worked example':'Fact'} ${+p[2]+1}`}${f&&f.hidden?' · removed':''}`;
+    if(!f)body='<p class="warnt">This item no longer exists.</p>';
+    else if(p[3]!=null){const q=(f.q||[])[+p[3]];body=`<p class="help" style="margin:0">From: ${esc(f.t)}</p>`+(q?qReview(q,gr.item):'<p class="warnt">This question no longer exists.</p>')}
+    else body=`<p style="margin:0">${esc(f.t)}</p>${figHtml(f.img)}${f.w?`<ol class="steps">${f.w.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol><p><b>Answer:</b> ${esc(f.w.ans)}</p>`:`${f.why?`<p class="help" style="margin:6px 0 0"><b>Why:</b> ${esc(f.why)}</p>`:''}${f.ex?`<p class="help" style="margin:4px 0 0"><b>Example:</b> ${esc(f.ex)}</p>`:''}`}`;
+    if(f){edit=`<button class="btn blue" data-edit="L|${p[1]}|${p[2]}">Edit</button>`;hide=`<button class="btn ghost" data-hide="${p[1]}|${p[2]}">${f.hidden?'Restore':'Remove'}</button>`}}
+  else{const r=(PQ[s.id]||[]).find(x=>x.id===p[1]),q=r&&r.q;
+    where=r?`${q.pr?'Practice question':'Past question'}${r.year?' · '+esc(r.year):''}${q.hidden?' · removed':''}`:'Past question';
+    body=r?qReview(Object.assign({k:'mc'},q),gr.item):'<p class="warnt">This question no longer exists.</p>';
+    if(r){if(q.k!=='th')edit=`<button class="btn blue" data-edit="P|${r.id}">Edit</button>`;hide=`<button class="btn ghost" data-hidepq="${r.id}">${q.hidden?'Restore':'Remove'}</button>`}}
+  const cnt={};gr.list.forEach(x=>cnt[x.reason]=(cnt[x.reason]||0)+1);
+  const day=x=>new Date(x.created_at).toLocaleDateString(undefined,{day:'numeric',month:'short'});
+  return `<div class="rcard"><div class="meta2">${where}<span class="badge2">${n} flag${n===1?'':'s'}</span></div>${body}
+    <div class="sec"><h4>Why students flagged it</h4><p class="help" style="margin:0">${Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<b>${esc(k)}</b>${v>1?` ×${v}`:''}`).join(' · ')}</p>
+    <ul class="flist">${gr.list.slice(0,30).map(x=>`<li>${esc(x.reason)}${x.note?`: “${esc(x.note)}”`:''} <small>· ${esc(x.nick)} · ${day(x)}</small></li>`).join('')}</ul>
+    ${gr.list[0].snap?`<details style="margin-top:6px"><summary>What the student saw</summary><p class="help" style="white-space:pre-wrap;margin:4px 0 0">${esc(gr.list[0].snap)}</p></details>`:''}</div>
+    <div class="rbtns">${fixed?`<button class="btn ghost" data-freopen="${esc(gr.item)}">Move back to To check</button>`:`<button class="btn ok" data-ffix="${esc(gr.item)}">Mark as fixed</button>`}${edit}${hide}</div></div>`}
 async function savePQ(r){chk(await SB.from('pq').update({q:r.q}).eq('id',r.id))}
 function bindReview(s){
   const box=$('#rvbody');
@@ -1432,6 +1549,7 @@ async function impTheory(x,where,P){
     if(!kw.length)P.err.push(`${where}, key point ${i+1}: has no key words ("kw"), so the app can only mark it with AI.`);return{t,kw,m}}).filter(Boolean);
   if(!pts.length){P.err.push(`${where}: a theory question needs at least one key point in "points".`);return null}
   const q={k:'th',p,ctx:String(x.ctx||'').trim(),marks:Math.max(1,Math.round(+x.marks||pts.reduce((a,o)=>a+o.m,0))),pts,model:String(x.model||'').trim(),d:['easy','medium','hard'].includes(x.d)?x.d:'medium',img:null};
+  const fa=(Array.isArray(x.final)?x.final:x.final!=null&&x.final!==''?[x.final]:[]).map(v=>String(v||'').trim()).filter(Boolean).slice(0,10);if(fa.length)q.fa=fa;
   if(!q.model)P.err.push(`${where}: has no model answer ("model").`);
   const im=await P.ref(x.img,where);if(im)q.img=im;return q}
 async function impQ(x,where,P,mcOnly){
@@ -1516,7 +1634,9 @@ async function importCourse(data,label,target,files,P){
     const key=(p,o)=>norm(p)+'|'+o.map(norm).join('|'),have=new Set((PQ[s.id]||[]).map(r=>r.q&&r.q.k==='th'?norm(r.q.p)+'|th':r.q&&Array.isArray(r.q.o)?key(r.q.p,r.q.o):'')),rows=[];
     const batch='b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
     for(const [i,x] of pqs.entries()){const where=x&&x.__pr?`Practice question ${i+1}`:`Past question ${i+1}`;
-      if(x&&(x.k==='th'||Array.isArray(x.points))){const q=await impTheory(x,where,P);if(!q)continue;const k=norm(q.p)+'|th';if(have.has(k)){P.dup++;continue}have.add(k);
+      if(x&&(x.k==='th'||Array.isArray(x.points))){const q=await impTheory(x,where,P);if(!q)continue;const k=norm(q.p)+'|th';
+        if(have.has(k)){const old=q.fa&&(PQ[s.id]||[]).find(r=>r.q&&r.q.k==='th'&&norm(r.q.p)===norm(q.p));   // already there: just add or update its final answer
+          if(old&&JSON.stringify(old.q.fa||[])!==JSON.stringify(q.fa)){old.q.fa=q.fa;await savePQ(old);P.faUpd=(P.faUpd||0)+1}P.dup++;continue}have.add(k);
         const u=matchUnit(s,x.topic);if(x.topic&&!u)P.err.push(`${where}: topic “${x.topic}” isn't in the course, so it was saved without a topic.`);
         if(x.__pr)q.pr=true;rows.push({id:'q'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),subject_id:s.id,unit:u?u.id:null,year:x.__pr?null:String(x.year||'').trim().slice(0,12)||null,src:label,batch,q});P.th=(P.th||0)+1;continue}
       const q=await impQ(Object.assign({},x,{k:'mc'}),where,P);if(!q)continue;
@@ -1539,9 +1659,9 @@ async function runImport(){
     try{await importCourse(impParse(await src.get()),src.label,target,imgs,P)}
     catch(e){console.error('Course import failed',src.label,e);P.failed.push(`${src.label}: ${typeof e==='string'?e:errMsg(e)+(e&&e.message?` (${e.message})`:'')}`)}}
   loading(false);
-  const ok=P.levels||P.pq||P.topicsNew;
+  const ok=P.levels||P.pq||P.topicsNew||P.faUpd;
   out.innerHTML=`<div class="panel" style="margin-top:12px"><span class="lbl">${ok?'Imported':'Nothing imported'}</span>
-    ${ok?`<p class="help" style="margin:0 0 8px">${[...P.courses].map(esc).join(', ')}: ${P.topics} topic${P.topics===1?'':'s'}${P.topicsNew?` (${P.topicsNew} new)`:''}, ${P.levels} lesson level${P.levels===1?'':'s'}, ${P.pq} past question${P.pq===1?'':'s'}${P.dup?` (${P.dup} already there, skipped)`:''}${P.imgs?`, ${P.imgs} picture${P.imgs===1?'':'s'}`:''}.</p>
+    ${ok?`<p class="help" style="margin:0 0 8px">${[...P.courses].map(esc).join(', ')}: ${P.topics} topic${P.topics===1?'':'s'}${P.topicsNew?` (${P.topicsNew} new)`:''}, ${P.levels} lesson level${P.levels===1?'':'s'}, ${P.pq} past question${P.pq===1?'':'s'}${P.dup?` (${P.dup} already there, skipped${P.faUpd?`; final answers added to ${P.faUpd}`:''})`:''}${P.imgs?`, ${P.imgs} picture${P.imgs===1?'':'s'}`:''}.</p>
     ${P.aiItems?`<p class="help" style="margin:0 0 8px">${P.aiItems} fact${P.aiItems===1?'':'s'} and worked example${P.aiItems===1?' was':'s were'} written by AI rather than taken from your materials. Check them under Review lessons → Written by AI.</p>`:''}`:''}
     ${P.failed.map(x=>`<p class="warnt" style="margin:0 0 8px">${esc(x)}</p>`).join('')}
     ${P.err.length?`<details><summary>${P.err.length} problem${P.err.length===1?'':'s'} in the file</summary><p class="help">Everything else was imported. You can copy these and send them to the AI to fix just those parts.</p><ul class="bul">${P.err.slice(0,150).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${P.err.length>150?`<p class="help">…and ${P.err.length-150} more.</p>`:''}<button class="btn ghost" id="impcopy" style="width:100%">Copy problems</button></details>`:''}</div>`;
@@ -1691,7 +1811,7 @@ async function importPQ(s,files,year,explain,from,to){
 
 /* ---------- end-of-topic quiz ---------- */
 // 15 questions from all 3 levels of the topic, plus up to 5 past questions matched to it.
-// 30 s per question (45 s for hard ones); unused time carries over to the next question.
+// 30 s per easy question, 45 s per medium one, 1 minute per hard one; unused time carries over to the next question.
 // No going back: a question is locked once you move past it, answered or not. When time runs out it moves on by itself.
 const QUIZ_N=15,QUIZ_PASS=.7;
 let QZ=null;
@@ -1710,7 +1830,7 @@ function renderQuizIntro(id){
   <div class="panel" style="margin:0 14px 14px"><b style="font:600 20px Fredoka,sans-serif">${esc(t.title)}</b><p class="help" style="margin:6px 0 0">You've covered every session of this topic. Pass this quiz to mark it <b>Mastered</b>.</p></div>
   <div class="panel" style="margin:0 14px"><ul class="bul" style="margin:0;padding-left:20px;display:grid;gap:6px">
    <li><b>${items.length} questions</b> from the whole topic${items.some(x=>x.pq)?', including real past questions':''}.</li>
-   <li><b>30 seconds</b> per question, <b>45 seconds</b> for hard ones.</li>
+   <li><b>30 seconds</b> per easy question, <b>45 seconds</b> per medium one and <b>1 minute</b> per hard one.</li>
    <li>Time you don't use <b>carries over</b> to the next question.</li>
    <li><b>No going back.</b> Once you move on, answered or not, that question is locked. When the time runs out, it moves on by itself.</li>
    <li>Pass mark: <b>${Math.round(QUIZ_PASS*100)}%</b>. Answers and explanations are shown at the end.</li></ul>
@@ -1726,8 +1846,8 @@ function startQuiz(id,items){
   show('lesson');qStep();
 }
 function qStep(){
-  const it=QZ.items[QZ.i];if(!it)return qFinish();
-  const d=diffOf(it.q,it.f,QZ.t),base=d==='hard'?45:30,carry=Math.floor(QZ.carry);QZ.carry=0;QZ.lim=base+carry;QZ.t0=Date.now();QZ.pick=null;
+  const it=QZ.items[QZ.i];setFlag(null);if(!it)return qFinish();
+  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.lim=base+carry;QZ.t0=Date.now();QZ.pick=null;
   $('#lbar').style.width=Math.round(100*QZ.i/QZ.items.length)+'%';$('#combo').textContent=`${QZ.i+1} of ${QZ.items.length}`;
   const q=it.q,opts=q.k==='mc'?it.order.map(i=>`<button class="opt" data-v="${i}">${esc(q.o[i])}</button>`).join(''):'<button class="opt" data-v="1">True</button><button class="opt" data-v="0">False</button>';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">Topic quiz · Question ${QZ.i+1} of ${QZ.items.length}<em>${d}</em>${it.pq?'<em>Past question</em>':''}</span><p class="help" style="margin:4px 0 0">${base}s${carry?` + ${carry}s carried over`:''}</p><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}<div class="opts${q.k==='tf'?' tfrow':''}">${opts}</div></div>`;
@@ -1762,7 +1882,7 @@ function qFinish(){
   const xp=right*10+(firstPass?50:0),was=curStreak();
   if(!prev.passed&&S.last!==d){S.streak=S.last===addDays(d,-1)?S.streak+1:1;S.last=d;S.best=Math.max(S.best,S.streak)}
   S.xp+=xp;S.hist[d]=(S.hist[d]||0)+xp;const wk=weekKey();if(S.wk!==wk){S.wk=wk;S.wxp=0}S.wxp+=xp;S.n++;
-  Z.ans.forEach((a,k)=>{const h=diffOf(Z.items[k].q,Z.items[k].f,t)==='hard',b=S.tm[h?'h':'e'];b[0]+=a.time;b[1]++});
+  Z.ans.forEach((a,k)=>{const b=S.tm[TMK[diffOf(Z.items[k].q,Z.items[k].f,t)]||'m'];b[0]+=a.time;b[1]++});
   save();pushBoard();QZ=null;
   const wrongFacts=[...new Set(Z.items.filter((it,k)=>!Z.ans[k].ok&&!it.pq).map(it=>it.fid))];
   const C=2*Math.PI*50,used=Z.ans.reduce((x,a)=>x+a.time,0);
@@ -1772,8 +1892,9 @@ function qFinish(){
     <div class="msg ${passed?'good':'bad'}">${passed?`${esc(t.title)} is now marked Mastered.${firstPass?' +50 bonus XP.':''}`:`You need ${Math.round(QUIZ_PASS*100)}% to pass. The ${n-right} question${n-right===1?'':'s'} you missed are below, and their facts are added to your review.`}</div>
     <div class="msg">+${xp} XP · ${fmtS(used)} used · best score ${S.quiz[id].best}%</div>
     ${passed?'':`<button class="btn blue" id="qreview">Review what I missed</button>`}<button class="btn ${passed?'blue':'ghost'}" id="qagain">${passed?'Back to the subject':'Retake the quiz'}</button>${passed?'':'<button class="btn ghost" id="qdone">Back to the subject</button>'}</div>
-    <h2>Your answers</h2><div style="margin:0 14px 30px">${Z.items.map((it,k)=>{const a=Z.ans[k],q=it.q;return `<div class="rcard"><div class="meta2">Question ${k+1}${it.pq?' · past question':''} · ${fmtS(a.time)}${a.timeout?' · time ran out':''}</div><p style="font-weight:800;margin:0 0 6px">${esc(q.p)}</p>${figHtml(q.img)}<p style="margin:4px 0;color:${a.ok?'var(--ok)':'var(--bad)'};font-weight:800">${a.ok?'✓':'✗'} Your answer: ${esc(ansTxt(q,a.pick))}</p>${a.ok?'':`<p style="margin:4px 0;font-weight:800">Correct answer: ${esc(right_(q))}</p>`}${q.sol||it.f.why?`<details${a.ok?'':' open'}><summary>Why</summary><p class="help" style="margin:4px 0 0">${esc(q.sol||it.f.why)}</p>${q.steps&&q.steps.length?`<ol class="steps">${q.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}</details>`:''}</div>`}).join('')}</div>`;
+    <h2>Your answers</h2><div style="margin:0 14px 30px">${Z.items.map((it,k)=>{const a=Z.ans[k],q=it.q;const ft=flagTarget(t,it.f,it.q);return `<div class="rcard"><div class="meta2">Question ${k+1}${it.pq?' · past question':''} · ${fmtS(a.time)}${a.timeout?' · time ran out':''}${ft?`<button class="linkb qflag" data-qflag="${k}">${FLAGS.has(ft.item)?'Flagged':'Flag a problem'}</button>`:''}</div><p style="font-weight:800;margin:0 0 6px">${esc(q.p)}</p>${figHtml(q.img)}<p style="margin:4px 0;color:${a.ok?'var(--ok)':'var(--bad)'};font-weight:800">${a.ok?'✓':'✗'} Your answer: ${esc(ansTxt(q,a.pick))}</p>${a.ok?'':`<p style="margin:4px 0;font-weight:800">Correct answer: ${esc(right_(q))}</p>`}${q.sol||it.f.why?`<details${a.ok?'':' open'}><summary>Why</summary><p class="help" style="margin:4px 0 0">${esc(q.sol||it.f.why)}</p>${q.steps&&q.steps.length?`<ol class="steps">${q.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}</details>`:''}</div>`}).join('')}</div>`;
   math($('#qz'));show('qz');
+  $('#qz').querySelectorAll('[data-qflag]').forEach(b=>b.onclick=()=>{const it=Z.items[+b.dataset.qflag];openFlag(flagTarget(t,it.f,it.q),()=>{b.textContent=FLAGS.has(flagTarget(t,it.f,it.q).item)?'Flagged':'Flag a problem'})});
   const back=()=>t.sub?renderSubj(t.sub.id):goHome();
   if(passed)$('#qagain').onclick=back;else{$('#qagain').onclick=()=>renderQuizIntro(id);$('#qdone').onclick=back;
     $('#qreview').onclick=()=>{const fs=allFacts(t).filter(f=>wrongFacts.includes(f.id));fs.length?begin(fs.map(f=>({t,f})),[]):renderQuizIntro(id)}}
@@ -2108,7 +2229,7 @@ async function startApp(session){
     const rs=PROFILE.state||{};if(rs.v&&(rs.t||0)>(S.t||0)){S=merge(rs);try{localStorage.setItem(KEY+'-'+UID,JSON.stringify(S))}catch(e){}}else if(S.t)push();
     await loadSubjects();
     const mine=new Set(Object.keys(S.tp).map(k=>(SUBS.find(s=>k.startsWith(s.id+'u'))||{}).id).filter(Boolean).concat(S.plan.subs.filter(id=>SUBS.some(s=>s.id===id))));
-    await Promise.all([...mine].map(loadLessons));if(ADMIN)await loadLessonIds();
+    await Promise.all([...mine].map(loadLessons));if(ADMIN)await loadLessonIds();loadFlags();
   }catch(e){renderAuth('Could not load your account. Check your connection and refresh the page.');return}
   swReg();save();
   nextStep();

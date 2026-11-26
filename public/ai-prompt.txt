@@ -60,6 +60,7 @@ RULES
    - "ctx": the shared text the part depends on (the question's introduction or scenario), copied exactly; "" if none.
    - "p": the part itself, exactly as written. "marks": its marks from the paper (or your estimate if none are shown).
    - "points": the key points a full-marks answer must contain, one per mark or per idea, each { "t": the point in one sentence, "kw": 2 to 6 short phrases or values, any one of which shows the point was made, "m": marks for that point }. Students' answers are checked by looking for these phrases, so give the common ways of saying the point (for example ["absolutely integrable", "absolutely summable", "integral of |x(t)| is finite"]). Join words with " + " when all of them must appear (for example "finite + discontinuities"). Use plain words and numbers in "kw", never LaTeX.
+   - "final": the correct final answer(s) a student would end with, as a list of 1 to 6 short phrases or values, any one of which counts (for example ["2.5 A", "2.5 amps", "2.5 amperes"]). Join words with " + " when all of them must appear (for example "x = 2 + x = -3" for two answers). Students earn XP for the final answer alone, and more for the key points in their workings. Use plain words and numbers, never LaTeX. For a "describe" or "explain" question, give the main conclusion in a few words.
    - "model": a model answer worth full marks, as a student should write it.
    - "topic", "year", "d" and "img" as above. No "o", "a", "sol" or source fields.
 
@@ -105,7 +106,7 @@ OUTPUT
   ],
   "past_questions": [
     { "topic": "Topic name", "year": "2019", "d": "medium", "p": "Question exactly as written", "o": ["...", "...", "...", "..."], "a": 0, "answer_source": "paper", "sol": "Why it is right.", "explanation_source": "ai", "img": null },
-    { "k": "th", "topic": "Topic name", "year": "2019", "d": "medium", "ctx": "", "p": "Theory question exactly as written", "marks": 3, "points": [ { "t": "Key point.", "kw": ["phrase one", "phrase two"], "m": 1 } ], "model": "A full-marks answer.", "img": null }
+    { "k": "th", "topic": "Topic name", "year": "2019", "d": "medium", "ctx": "", "p": "Theory question exactly as written", "marks": 3, "points": [ { "t": "Key point.", "kw": ["phrase one", "phrase two"], "m": 1 } ], "final": ["final answer"], "model": "A full-marks answer.", "img": null }
   ]
 }
 
