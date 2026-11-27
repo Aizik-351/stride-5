@@ -1275,7 +1275,7 @@ function finish(){
   if(XN.length)['#back','#more','#toquiz'].forEach(sel=>{const b=$(sel);if(!b||!b.onclick)return;const fn=b.onclick;
     b.onclick=()=>{const list=XN.splice(0),go=i=>i<list.length?openNotes(list[i][0],list[i][1],{auto:true,next:()=>go(i+1)}):(list.length&&show('done'),fn());go(0)}});
 }
-$('#quit').onclick=()=>{if(QZ){clearInterval(QZ.timer);$('#cd').hidden=true;$('#tmr').hidden=true;quizSnap();save();const t=QZ.t;QZ=null;if(t.sub)renderSubj(t.sub.id);else goHome();toast('Saved. Tap the topic to continue the quiz where you stopped.');return}
+$('#quit').onclick=()=>{if(QZ){if(!QZ.quitArm){QZ.quitArm=true;toast('Tap × again to end the quiz now. Unanswered questions count as wrong.');setTimeout(()=>{if(QZ)QZ.quitArm=false},4000);return}clearInterval(QZ.timer);while(QZ.ans.length<QZ.items.length)QZ.ans.push({pick:null,ok:false,time:0,timeout:false});QZ.i=QZ.items.length;qFinish();return}
   stopTimer();if(R&&R.closed){backToLive();return}
   const t=R&&R.steps[0]&&R.steps[0].t,kept=R&&R.key&&livePos()>0?R.key:null;if(R){accrue();credit();snapRun();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome();
   if(kept)toast(kept==='rev'?'Saved. Tap Review to continue where you stopped.':kept.startsWith('pq|')?'Saved. Open these questions again to continue where you stopped.':'Saved. Tap the topic to continue where you stopped.')};
@@ -1969,7 +1969,7 @@ function buildQuiz(t,avoid){const later=x=>avoid&&avoid.has(x.fid)?1:0;   // aft
 }
 function renderQuizIntro(id,avoid){
   const t=byId(id);if(!t)return goHome();
-  if(!avoid){const run=getRun('qz|'+id);if(run)return askResume(run,`You've answered ${run.i} of ${run.Z.items.length} questions in the topic quiz on ${esc(t.title)}.`,()=>resumeQuiz(run),()=>renderQuizIntro(id,dropRun('qz|'+id)))}
+  if(!avoid){const run=getRun('qz|'+id);if(run)return askResume(run,`You've answered ${run.i} of ${run.Z.items.length} questions in the topic quiz on ${esc(t.title)}. The clock kept running while you were away.`,()=>resumeQuiz(run),()=>renderQuizIntro(id,dropRun('qz|'+id)))}
   const items=buildQuiz(t,avoid),qd=quizDone(id);
   $('#qz').innerHTML=`<div class="subhead"><button class="back" id="qback" aria-label="Back">${BACK}</button><h1>Topic quiz</h1></div>
   <div class="panel" style="margin:0 14px 14px"><b style="font:600 20px Fredoka,sans-serif">${esc(t.title)}</b><p class="help" style="margin:6px 0 0">You've covered every session of this topic. Pass this quiz to mark it <b>Mastered</b>.</p></div>
@@ -1977,7 +1977,8 @@ function renderQuizIntro(id,avoid){
    <li><b>${items.length} questions</b> from the whole topic${items.some(x=>x.pq)?', including real past questions':''}.</li>
    <li><b>30 seconds</b> per easy question, <b>45 seconds</b> per medium one and <b>1 minute</b> per hard one.</li>
    <li>Time you don't use <b>carries over</b> to the next question.</li>
-   <li><b>No going back.</b> Once you move on, answered or not, that question is locked. When the time runs out, it moves on by itself.</li>
+   <li><b>No going back.</b> Once you move on, answered or not, that question is locked. When the time runs out, it moves on by itself, and an answer you picked counts.</li>
+   <li><b>No pausing.</b> Leaving with × ends the quiz. If the app closes by accident, you can continue, but the clock keeps running while you're away.</li>
    <li>Pass mark: <b>${Math.round(QUIZ_PASS*100)}%</b>. Answers and explanations are shown at the end.</li></ul>
    ${qd?`<p class="help" style="margin:12px 0 0">Your best score so far: <b>${qd.best}%</b> (${qd.attempts} attempt${qd.attempts>1?'s':''}).</p>`:''}</div>
   <div style="margin:18px 14px;display:grid;gap:10px">${items.length?'<button class="btn blue" id="qstart">Start quiz</button>':'<p class="sync">No questions are ready for this topic yet.</p>'}<button class="btn ghost" id="qprac">Practise the topic instead</button></div>`;
@@ -1992,7 +1993,7 @@ function startQuiz(id,items){
 }
 function qStep(){
   const it=QZ.items[QZ.i];setFlag(null);if(!it)return qFinish();
-  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.cc=carry;QZ.lim=base+carry;QZ.t0=Date.now()-(QZ.el0||0)*1000;QZ.el0=0;QZ.pick=null;QZ.pkAt=null;quizSnap();save();
+  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.cc=carry;QZ.lim=base+carry;QZ.t0=Date.now()-(QZ.el0||0)*1000;QZ.el0=0;QZ.pick=QZ.pick0!=null?QZ.pick0:null;QZ.pkAt=QZ.pick0!=null?QZ.pkAt0:null;QZ.pick0=QZ.pkAt0=null;quizSnap();save();
   $('#lbar').style.width=Math.round(100*QZ.i/QZ.items.length)+'%';$('#combo').textContent=`${QZ.i+1} of ${QZ.items.length}`;
   const q=it.q,opts=q.k==='mc'?it.order.map(i=>`<button class="opt" data-v="${i}">${esc(q.o[i])}</button>`).join(''):'<button class="opt" data-v="1">True</button><button class="opt" data-v="0">False</button>';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">Topic quiz · Question ${QZ.i+1} of ${QZ.items.length}<em>${d}</em>${it.pq?'<em>Past question</em>':''}</span><p class="help" style="margin:4px 0 0">${base}s${carry?` + ${carry}s carried over`:''}</p><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}<div class="opts${q.k==='tf'?' tfrow':''}">${opts}</div></div>`;
@@ -2001,17 +2002,19 @@ function qStep(){
   const setBtn=()=>{$('#qnext').textContent=QZ.pick==null?(QZ.i+1<QZ.items.length?'Skip':'Skip and finish'):(QZ.i+1<QZ.items.length?'Next':'Finish quiz')};
   $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');QZ.pick=b.dataset.v;QZ.pkAt=(Date.now()-QZ.t0)/1000;setBtn()});
   $('#qnext').onclick=()=>qNext(false);
+  if(QZ.pick!=null){const b=$('#stage').querySelector(`.opt[data-v="${QZ.pick}"]`);if(b)b.classList.add('sel');setBtn()}
   clearInterval(QZ.timer);QZ.timer=setInterval(qTick,200);qTick();
 }
-// Saving a topic quiz part-way (see "unfinished sessions"). The question on screen keeps the time already used.
+// Saving a topic quiz part-way (see "unfinished sessions"), for when the app closes. × ends the quiz instead.
+// The clock keeps running while the student is away: on Continue, that time comes off the question that was on screen.
 function quizSnap(){if(!QZ||QZ.i>=QZ.items.length)return;const el=QZ.t0?Math.max(0,Math.min(QZ.lim,(Date.now()-QZ.t0)/1000)):0;
-  putRun('qz|'+QZ.id,{quiz:1,id:QZ.id,i:QZ.i,carry:QZ.cc||0,el,ans:QZ.ans,started:QZ.started,items:QZ.items.map(it=>({fid:it.fid,pq:it.pq?1:0,qi:it.pq?0:(it.f.q||[]).indexOf(it.q),order:it.order}))})}
+  putRun('qz|'+QZ.id,{quiz:1,id:QZ.id,i:QZ.i,carry:QZ.cc||0,el,pick:QZ.pick,pkAt:QZ.pkAt,ans:QZ.ans,started:QZ.started,items:QZ.items.map(it=>({fid:it.fid,pq:it.pq?1:0,qi:it.pq?0:(it.f.q||[]).indexOf(it.q),order:it.order}))})}
 function quizFromRun(r){const t=byId(r.id);if(!t||!t.sub)return null;
   try{return{id:r.id,t,items:r.items.map(x=>{if(x.pq){const row=pqRow(t.sub.id,x.fid);if(!row)throw 0;const q=pqQ(row);return{q,f:{id:x.fid,t:q.p,why:q.sol||'',L:2},fid:x.fid,pq:true,order:x.order}}
     const f=allFacts(t).find(f=>f.id===x.fid),q=f&&(f.q||[])[x.qi];if(!q)throw 0;return{q,f,fid:x.fid,order:x.order}})}}catch(e){return null}}
 function getQuizRun(key){const r=S.runs[key],Z=quizFromRun(r);if(!Z||!(r.i>0||r.el>=1)||r.i>=Z.items.length)return null;return{quiz:true,Z,i:r.i,r}}
 function resumeQuiz(run){const r=run.r,Z=run.Z;
-  QZ={id:Z.id,t:Z.t,items:Z.items,i:r.i,carry:r.carry||0,el0:r.el||0,ans:r.ans||[],timer:null,t0:0,lim:0,pick:null,quitArm:false,started:r.started||Date.now()};
+  QZ={id:Z.id,t:Z.t,items:Z.items,i:r.i,carry:r.carry||0,el0:(r.el||0)+Math.max(0,(Date.now()-(r.at||Date.now()))/1000),pick0:r.pick,pkAt0:r.pkAt,ans:r.ans||[],timer:null,t0:0,lim:0,pick:null,quitArm:false,started:r.started||Date.now()};
   $('#lback').hidden=true;show('lesson');qStep()}
 // The answered part of a quiz that was left and then started again: XP for right answers, missed ones go to review.
 // It doesn't count as an attempt.
