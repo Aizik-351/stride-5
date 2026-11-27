@@ -7,6 +7,7 @@
 <script defer src="/katex/katex.min.js"></script><script defer src="/katex/contrib/mhchem.min.js"></script><script defer src="/katex/contrib/auto-render.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* VOICE: upbeat coach, short sentences, honest about pace
@@ -2196,8 +2197,11 @@ function authErr(e){const m=(e&&e.message||'').toLowerCase(),c=e&&e.code||'';
 // Google's own sign-in button: Google then shows this site's address, not the Supabase one.
 // Used only when GOOGLE_CLIENT_ID is set in Vercel; otherwise the button above (via Supabase) stays.
 let GIS=null;
+// The Google script is loaded in <head>; wait for it here (or add it again if it failed earlier).
 function loadGIS(){return GIS||(GIS=new Promise((ok,no)=>{if(window.google&&google.accounts&&google.accounts.id)return ok();
-  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=()=>ok();sc.onerror=()=>{GIS=null;no(new Error('gis'))};document.head.append(sc)}))}
+  let sc=document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
+  if(!sc){sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;document.head.append(sc)}
+  sc.addEventListener('load',()=>ok());sc.addEventListener('error',()=>{GIS=null;sc.remove();no(new Error('gis'))})}))}
 async function gisButton(g){
   if(!CFG||!CFG.google||!window.crypto||!crypto.subtle)return;
   try{await loadGIS()}catch(e){return}
@@ -2208,9 +2212,9 @@ async function gisButton(g){
   google.accounts.id.initialize({client_id:CFG.google,nonce:hashed,ux_mode:'popup',callback:async r=>{
     const m=$('#amsg');if(m){m.textContent='Signing in…';m.className='amsg'}
     const {error}=await SB.auth.signInWithIdToken({provider:'google',token:r.credential,nonce:raw});
-    if(error){if(m){m.textContent='Google sign-in didn\'t work. Try again, or use your email and password.';m.className='amsg bad'}gisButton($('.gisbox')||g)}}});
-  const box=document.createElement('div');box.className='gisbox';g.replaceWith(box);
-  google.accounts.id.renderButton(box,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'pill',logo_alignment:'center',width:Math.min(400,Math.max(220,box.clientWidth||320))});
+    if(error){if(m){m.textContent='Google sign-in didn\'t work. Try again, or use your email and password.';m.className='amsg bad'}gisButton($('#google-btn'))}}});
+  const box=$('#google-btn');if(!box)return;const w=box.clientWidth;box.className='gisbox';box.replaceChildren();
+  google.accounts.id.renderButton(box,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'pill',logo_alignment:'center',width:Math.min(400,Math.max(220,w||320))});
 }
 function renderAuth(msg,mode){
   if(mode)authMode=mode;
@@ -2227,11 +2231,11 @@ function renderAuth(msg,mode){
     <button class="btn blue" id="asub">${fg?'Send reset link':up?'Create account':'Sign in'}</button>
     ${fg?'<button type="button" class="linkb" data-am="in">Back to sign in</button>':up?'':'<button type="button" class="linkb" data-am="forgot">Forgot password?</button>'}
   </form>
-  ${fg?'':`<div class="or"><span>or</span></div><button class="btn gbtn" id="gsign">${GLOGO}Continue with Google</button>`}
+  ${fg?'':`<div class="or"><span>or</span></div><div id="google-btn"><button class="btn gbtn" id="gsign">${GLOGO}Continue with Google</button></div>`}
   </div>`;
   const em=$('#aem');try{em.value=sessionStorage.getItem('stride-email')||''}catch(e){}
   $('#auth').querySelectorAll('[data-am]').forEach(b=>b.onclick=()=>{try{sessionStorage.setItem('stride-email',em.value.trim())}catch(e){}renderAuth(null,b.dataset.am)});
-  const g=$('#gsign');if(g){g.onclick=()=>SB.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});gisButton(g)}
+  const g=$('#gsign');if(g){g.onclick=()=>SB.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});gisButton($('#google-btn'))}
   const say=(t,bad)=>{const p=$('#amsg');p.textContent=t;p.className=bad?'amsg bad':'amsg'};
   $('#af').onsubmit=async e=>{e.preventDefault();const email=em.value.trim(),btn=$('#asub');
     if(!/^\S+@\S+\.\S+$/.test(email)){say('Enter a valid email address.',true);em.focus();return}
