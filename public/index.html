@@ -406,10 +406,16 @@ const chk=r=>{if(r&&r.error)throw{code:'db',message:r.error.message};return r};
 /* one device per account: each browser gets an id; the profile remembers the device that signed in last */
 const DEVICE=(()=>{let d=null;try{d=localStorage.getItem('stride-device')}catch(e){}if(!d){d=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));try{localStorage.setItem('stride-device',d)}catch(e){}}return d})();
 let KICKED=false;
+// Sign out on this device. Supabase keeps the saved session if its sign-out request fails (offline, server error),
+// which made the reload sign the user straight back in, so the saved session is also removed here directly.
+async function signOutHere(){
+  try{await Promise.race([SB.auth.signOut({scope:'local'}),new Promise(ok=>setTimeout(ok,5000))])}catch(e){}
+  try{for(const k of Object.keys(localStorage))if(/^sb-.*-auth-token/.test(k)||k===SB.auth.storageKey||k===SB.auth.storageKey+'-code-verifier')localStorage.removeItem(k)}catch(e){}
+  try{window.google&&google.accounts&&google.accounts.id&&google.accounts.id.disableAutoSelect()}catch(e){}}
 const ownKey=()=>'stride-own-'+UID;
 async function kick(){if(KICKED)return;KICKED=true;clearTimeout(pushT);try{localStorage.removeItem(ownKey())}catch(e){}
   try{sessionStorage.setItem('stride-msg','Your account was signed in on another device, so you have been signed out here. Each account can be used on one device at a time.')}catch(e){}
-  try{await SB.auth.signOut({scope:'local'})}catch(e){}location.reload()}
+  await signOutHere();location.reload()}
 async function checkDevice(){if(!UID||KICKED)return;try{const r=await SB.from('profiles').select('device').eq('id',UID).maybeSingle();if(!r.error&&r.data&&r.data.device&&r.data.device!==DEVICE)kick()}catch(e){}}
 async function push(){if(!UID||KICKED)return;if(busy){again=true;return}busy=true;
   try{chk(await SB.from('profiles').update({state:JSON.parse(JSON.stringify(S)),xp:S.xp,wk:S.wk,wxp:S.wk===weekKey()?S.wxp:0,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',sched:schedule(),today:{d:today(),done:todayPlan().dm},updated_at:new Date().toISOString()}).eq('id',UID).eq('device',DEVICE))}catch(e){}
@@ -583,7 +589,7 @@ function renderHome(){
   <div class="acct"><span>Signed in as <b id="meNick"></b>${PROFILE&&PROFILE.category?` · ${esc(PROFILE.category)}`:''}. Your nickname is what others in your category see on the leaderboard.</span><button class="linkb" data-reg="1">Change category</button><button class="linkb" id="chNick">Change nickname</button><button class="linkb" id="signOut">Sign out</button>${ADMIN?'':'<button class="linkb" id="adminCode">Admin access</button>'}</div>
   </aside></div>`;
   $('#meNick').textContent=PROFILE&&PROFILE.nickname||'';
-  $('#chNick').onclick=()=>renderNick(true);$('#signOut').onclick=async()=>{await pushBoard();try{localStorage.removeItem(ownKey())}catch(e){}await SB.auth.signOut({scope:'local'});location.reload()};
+  $('#chNick').onclick=()=>renderNick(true);$('#signOut').onclick=async()=>{await pushBoard();try{localStorage.removeItem(ownKey())}catch(e){}await signOutHere();location.reload()};
   if(!ADMIN)$('#adminCode').onclick=()=>{$('#pmodal').hidden=false;$('#pcode').value='';$('#pcode').focus()};
   $('#go').onclick=()=>cur?startTopic(cur.id):renderReg(false);
   $('#lbBtn').onclick=()=>openBoard(boardTab);bindInstall();
