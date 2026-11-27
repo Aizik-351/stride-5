@@ -162,6 +162,12 @@ details summary{cursor:pointer;font-weight:800;color:var(--blue2);min-height:32p
 .tgt.s3{border-color:var(--bad);background:var(--badbg);color:var(--bad)}.tgt.s3 h3{color:var(--bad)}.tgt.s3{animation:nudge 2.4s ease-in-out infinite}
 .tgt.ok{border-color:var(--ok);color:var(--ok)}
 .tgt .linkb{padding:0;min-height:32px}
+.tgl{list-style:none;margin:10px 0 2px;padding:0;display:grid;gap:4px}
+.tgs{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:8px;row-gap:4px;align-items:center;width:100%;background:none;border:0;padding:5px 0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.tgs .dot{width:10px;height:10px;border-radius:50%}
+.tgs b{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tgs em{font-style:normal;color:var(--mute);font-size:14px;white-space:nowrap}.tgs.done em{color:var(--ok);font-weight:700}
+.tgs .tgb{grid-column:2/4;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.tgs .tgb i{display:block;height:100%;background:var(--blue2);border-radius:3px}.tgs.done .tgb i{background:var(--ok)}
 @keyframes nudge{0%,90%,100%{transform:none}93%{transform:translateX(-3px)}96%{transform:translateX(3px)}}
 .pill.met{border-color:var(--sun);background:var(--warnbg)}
 label.chk{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-weight:400;margin:0;cursor:pointer}
@@ -392,12 +398,12 @@ async function ai(prompt,o={}){
 async function imgData(f){const bmp=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return{type:'image/jpeg',data:c.toDataURL('image/jpeg',.82).split(',')[1]}}
 
 /* ---------- state + sync ---------- */
-const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},xn:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
+const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},xn:{},runs:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
 const fresh=()=>JSON.parse(JSON.stringify(DEF));
 function merge(r){const s=Object.assign(fresh(),r);
   // study time: one total per day, plus all-time and best day/week. Older saves start all-time from per-topic minutes.
   if(!r||!r.st)s.st.tot=Math.round(Object.values(s.um||{}).reduce((a,b)=>a+(+b||0),0)*10)/10;
-  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};return s}
+  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};s.runs=s.runs||{};return s}
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY+'-'+UID));if(r&&r.v)return merge(r)}catch(e){}return fresh()}
 let NOTES={};   // extra notes per prepared level: "<unit id>-L<level>" -> Markdown
 let S=fresh(),R=null,pick=null,T=null,DB=null,USER=null,UID=null,ref=null,busy=false,again=false,boardTab='week',openSub=null,SUBS=[],LES={},LESIDS=new Set(),LOADED=new Set(),GEN={},ADMIN=false,PROFILE=null,pushT=null,CFG={},IMGS={},IMGLOADED=new Set(),PQ={},ALLOWED_IMG=new Set();
@@ -499,10 +505,13 @@ function targetBanner(tp){
   if(!tp.tm)return '';const C=2*Math.PI*22,pc=Math.round(tp.pct*100);
   const ring=`<span class="mini"><svg viewBox="0 0 50 50" aria-hidden="true"><circle class="trk" cx="25" cy="25" r="22"/><circle class="val" cx="25" cy="25" r="22" style="stroke-dasharray:${C};stroke-dashoffset:${C*(1-tp.pct)}"/></svg><b>${pc}%</b></span>`;
   const edit='<button class="linkb" data-plan="1">Edit plan</button>';
-  if(tp.pct>=1)return `<div class="tgt ok" role="status">${ring}<div><h3>Today's target is done</h3><p>You're on track for your exams. Extra sessions put you ahead. ${edit}</p></div></div>`;
+  // what makes up today's target: each subject's sessions for today, and how many are done
+  const list=`<ul class="tgl" aria-label="Today's sessions by subject">${tp.rows.filter(r=>r.tgt).map(r=>{const ok=r.done>=r.tgt-1e-6,d=Math.min(r.tgt,Math.floor(r.done+1e-6));
+    return `<li><button class="tgs${ok?' done':''}" data-s="${r.s.id}"><span class="dot" style="background:${r.s.color}" aria-hidden="true"></span><b>${esc(r.s.title)}</b><em>${ok?'✓ ':''}${d} of ${r.tgt} session${r.tgt===1?'':'s'}</em><span class="tgb" aria-hidden="true"><i style="width:${Math.round(100*Math.min(1,r.done/r.tgt))}%"></i></span></button></li>`}).join('')}</ul>`;
+  if(tp.pct>=1)return `<div class="tgt ok" role="status">${ring}<div><h3>Today's target is done</h3>${list}<p>You're on track for your exams. Extra sessions put you ahead. ${edit}</p></div></div>`;
   const st=dayStage(),sl=`${tp.left} session${tp.left===1?'':'s'}`;
   const [h,p]=st===1?[`Today's target: ${pc}% done`,`${sl} to go today. Each session is a set of facts and questions to get right, usually about ${Math.round(tp.mins/Math.max(1,tp.tm))} minutes.`]:st===2?[`Only ${pc}% of today's target done`,`The day is slipping away and you still have ${sl} to do. Start one now to stay on track.`]:[`Last call: ${pc}% of today's target`,`The day is almost over and you're behind. Even one session now keeps you closer to your exam goal.`];
-  return `<div class="tgt s${st}" role="status">${ring}<div><h3>${h}</h3><p>${p} ${edit}</p></div></div>`;
+  return `<div class="tgt s${st}" role="status">${ring}<div><h3>${h}</h3>${list}<p>${p} ${edit}</p></div></div>`;
 }
 
 
@@ -594,7 +603,7 @@ function renderHome(){
   $('#go').onclick=()=>cur?startTopic(cur.id):renderReg(false);
   $('#lbBtn').onclick=()=>openBoard(boardTab);bindInstall();
   if(ADMIN)$('#adBtn').onclick=renderAdmin;
-  if(due)$('#review').onclick=()=>begin([],shuffle(dueList()).slice(0,6));
+  if(due)$('#review').onclick=()=>{const run=getRun('rev');if(run)return askResume(run,'You\'re '+runPct(run)+'% through a review session.',()=>resumeRun('rev',run),()=>{dropRun('rev');begin([],shuffle(dueList()).slice(0,6),'rev')});begin([],shuffle(dueList()).slice(0,6),'rev')};
 }
 function listClicks(root){
   root.addEventListener('click',e=>{
@@ -1002,7 +1011,8 @@ async function create(title){
 async function startTopic(id,again,practice){
   let t=byId(id);if(!t)return;
   if(t.unit&&!t.sub.builtin&&!LOADED.has(t.sub.id)){try{loading(true,'Loading lesson…');await loadLessons(t.sub.id)}catch(e){}finally{loading(false)}t=byId(id)}
-  if(!again&&!practice&&quizReady(t)&&!quizPassed(t.id)){await loadPQ(t.sub.id).catch(()=>{});return renderQuizIntro(t.id)}
+  if(!again&&!practice){const run=getRun(id);if(run)return askResume(run,`You're ${runPct(run)}% through a lesson on ${esc(t.title)}.`,()=>resumeRun(id,run),()=>{dropRun(id);startTopic(id)})}
+  if(!again&&!practice&&((quizReady(t)&&!quizPassed(t.id))||(S.runs&&S.runs['qz|'+t.id]))){await loadPQ(t.sub.id).catch(()=>{});return renderQuizIntro(t.id)}
   const p=P(t.id);S.cur=t.id;advance(t);
   if(t.custom&&!t.levels[p.lvl-1]&&!again&&!AION()){toast(p.lvl>1?`Level ${p.lvl} of ${t.title} isn't ready yet. Keep revising, and check back soon.`:`${t.title} isn't ready yet. Check back soon.`);return}
   if(t.custom&&!t.levels[p.lvl-1]&&!again){try{const k=t.id+'-L'+p.lvl;let lv=t.unit?await fetchGen(k):null;
@@ -1017,9 +1027,9 @@ async function startTopic(id,again,practice){
   const ids=new Set(picks.map(f=>f.id));
   let rev=allFacts(t).filter(f=>!ids.has(f.id)&&seen(f)&&seen(f).due<=today()).sort((a,b)=>bx(a)-bx(b)).slice(0,2);
   if(!picks.length&&!rev.length)rev=shuffle(allFacts(t)).sort((a,b)=>bx(a)-bx(b)).slice(0,4);
-  begin(picks.map(f=>({t,f})),rev.map(f=>({t,f})));
+  begin(picks.map(f=>({t,f})),rev.map(f=>({t,f})),t.id);
 }
-function begin(learn,rev){
+function begin(learn,rev,key){
   const steps=[],pool=[],ask=(x,q,o)=>Object.assign({k:'ask',q},x,o||{});
   learn.filter(x=>!x.f.w).forEach(x=>{steps.push(Object.assign({k:'learn',again:!!P(x.t.id).f[x.f.id]},x),ask(x,x.f.q[0]));if(x.f.q[1])pool.push(ask(x,x.f.q[1]))});
   const wk=learn.filter(x=>x.f.w);
@@ -1027,7 +1037,7 @@ function begin(learn,rev){
   wk.forEach(x=>x.f.q.forEach(q=>steps.push(ask(x,q,{practice:true}))));
   rev.forEach(x=>pool.push(ask(x,x.f.q[Math.random()*x.f.q.length|0],{rev:true})));
   steps.push(...shuffle(pool));
-  runSteps(steps);
+  runSteps(steps,key);
 }
 
 /* ---------- theory questions ----------
@@ -1104,7 +1114,7 @@ function thRender(s,view){
 // got wrong and is relearning, or a past question never answered or last missed. Pure repeats don't count.
 function isFresh(s){if(!s||!s.f)return false;if(s.pq){const o=S.pqs[s.f.id.slice(3)];return !o||o.last===0}
   if(!s.t)return false;const r=P(s.t.id).f[s.f.id];return !r||!(r.b>=1)}
-function runSteps(steps){R={steps,i:0,combo:0,best:0,ok:0,n:0,xp:0,late:0,wrong:new Set(),seen:new Set(),tops:new Set(),times:[],tm:{},lt:null,pi:0,v:null,closed:false,fresh:steps.some(isFresh)};show('lesson');step()}
+function runSteps(steps,key,meta){if(key&&S.runs&&S.runs[key])dropRun(key);R={steps,key:key||null,meta:meta||null,i:0,combo:0,best:0,ok:0,n:0,xp:0,late:0,wrong:new Set(),seen:new Set(),tops:new Set(),times:[],tm:{},lt:null,pi:0,v:null,closed:false,fresh:steps.some(isFresh)};show('lesson');step()}
 function bar(n){$('#lbar').style.width=Math.round(100*n/R.steps.length)+'%';$('#combo').textContent=R.combo>=2?R.combo+'× combo':''}
 function factBody(f){
   if(f.w)return '';
@@ -1113,7 +1123,7 @@ function factBody(f){
 function workedHtml(f,n){const w=f.w,all=n>=w.steps.length;
   return `<ol class="steps">${w.steps.slice(0,n).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${all?`<p class="ansline">Answer: ${esc(w.ans)}</p>${w.why?`<div class="sec"><h4>Why this is correct</h4><p>${esc(w.why)}</p></div>`:''}${w.mistakes.length?`<div class="sec mis"><h4>Common mistakes</h4><ul class="bul">${w.mistakes.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}`:''}`}
 function step(){
-  accrue();stopTimer();R.v=null;const s=R.steps[R.i];bar(R.i);$('#tmr').hidden=true;setFlag(s?flagTarget(s.t,s.f,s.q):null);if(!s)return finish();setBack();
+  accrue();stopTimer();R.v=null;const s=R.steps[R.i];if(s&&R.key){snapRun();save()}bar(R.i);$('#tmr').hidden=true;setFlag(s?flagTarget(s.t,s.f,s.q):null);if(!s)return finish();setBack();
   const a=$('#act');a.className='act';
   if(s.k==='learn'){
     if(s.f.w){
@@ -1134,19 +1144,22 @@ function step(){
   const kind=q.k==='tf'?'True or false?':q.k==='in'?'Type the answer':s.practice?'Practice question':'Choose the answer';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">${s.retry?'Second try · ':s.rev?'Review · ':''}${kind}<em>${d}</em></span><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}${body}</div>`;
   math($('#stage'));a.innerHTML='<button class="btn blue" id="chk" disabled>Check</button>';$('#chk').onclick=check;
-  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pick=b.dataset.v;$('#chk').disabled=false});
-  const inp=$('#ans');if(inp){inp.oninput=()=>$('#chk').disabled=!inp.value.trim();inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim())check()};inp.focus()}
+  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pick=b.dataset.v;if(T)T.pk=elapsed();$('#chk').disabled=false});
+  const inp=$('#ans');if(inp){inp.oninput=()=>{$('#chk').disabled=!inp.value.trim();if(T)T.pk=inp.value.trim()?elapsed():null};inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim())check()};inp.focus()}
   startTimer(tlim(d),s.el||0);
 }
 /* timer: limit → 5s big countdown → 30s grace (no XP) → "taking a while" popup */
-function startTimer(lim,off){off=off||0;T={t0:Date.now()-off*1000,lim,popped:off>=lim+30,id:setInterval(tick,200)};tick()}
+function startTimer(lim,off){off=off||0;T={t0:Date.now()-off*1000,lim,popped:off>=lim+30,pk:null,id:setInterval(tick,200)};tick()}
 function stopTimer(){if(T&&T.id){clearInterval(T.id);T.id=null}$('#cd').hidden=true;$('#modal').hidden=true}
 const elapsed=()=>T?(Date.now()-T.t0)/1000:0;
 function tick(){
   const left=T.lim-elapsed(),tm=$('#tmr'),cd=$('#cd');tm.hidden=false;
   const big=n=>{if(cd.dataset.n!==String(n)){cd.dataset.n=n;$('#cdn').textContent=n;cd.hidden=false;cd.classList.remove('beat');void cd.offsetWidth;cd.classList.add('beat')}};
   if(left>0){tm.className='tmr'+(left<=10?' low':'');tm.textContent=Math.ceil(left)+'s';if(left<=5)big(Math.ceil(left));else{cd.hidden=true;cd.dataset.n=''}}
-  else{if(left>-1)big(0);else cd.hidden=true;const g=Math.ceil(30+left);tm.className='tmr over';tm.textContent=g>0?`No XP · ${g}s`:'No XP';
+  else{
+    // An answer chosen (or typed) before the limit is submitted by itself, timed at the limit exactly.
+    if(T.pk!=null&&T.pk<=T.lim&&R&&R.v==null){const ch=$('#chk');if(ch&&!ch.disabled){cd.hidden=true;check(true);return}}
+    if(left>-1)big(0);else cd.hidden=true;const g=Math.ceil(30+left);tm.className='tmr over';tm.textContent=g>0?`No XP · ${g}s`:'No XP';
     if(left<=-30&&!T.popped){T.popped=true;$('#modal').hidden=false;$('#myes').focus()}}
 }
 $('#stopgen').onclick=()=>{STOP=true;$('#loadtxt').textContent='Stopping after this level…'};
@@ -1162,8 +1175,8 @@ function showSolution(){
   const a=$('#act');a.className='act bad';a.innerHTML=`<div class="fb"><h3>Study this one</h3><p style="margin:-4px 0 10px">No XP this time. It will come back for another try before the lesson ends.</p></div><button class="btn bad" id="nx">Continue</button>`;
   $('#nx').onclick=()=>{R.i++;step()};
 }
-function check(){
-  const s=R.steps[R.i],q=s.q,e=elapsed(),inTime=e<=T.lim;stopTimer();let ok=false,note='';
+function check(auto){
+  const s=R.steps[R.i],q=s.q,e=auto?T.lim:elapsed(),inTime=e<=T.lim;stopTimer();let ok=false,note='';
   if(q.k==='mc')ok=+pick===q.a;
   else if(q.k==='tf')ok=(pick==='1')===!!q.a;
   else{const v=norm($('#ans').value),acc=q.a.map(norm);ok=acc.includes(v);if(!ok&&acc.some(x=>x.length>4&&lev(x,v)<=1)){ok=true;note='Close enough. Watch the spelling: '+q.a[0]}$('#ans').disabled=true}
@@ -1228,13 +1241,16 @@ function viewStep(idx){
   const inp=$('#ans');if(inp){inp.oninput=()=>$('#chk').disabled=!inp.value.trim();inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim()&&!inp.disabled)go()};inp.focus()}
 }
 function backToLive(){R.v=null;if(R.closed){$('#lback').hidden=true;show('done');return}step()}
+// Records one answered fact or past question (spaced repetition and past-question stats).
+function recSeen(fid,wrong,d){if(fid.startsWith('pq:')){const id=fid.slice(3),o=S.pqs[id]||{n:0,ok:0};o.n++;if(!wrong)o.ok++;o.last=wrong?0:1;S.pqs[id]=o;return}
+  const tid=fid.split(':')[0],p=P(tid),old=p.f[fid];const b=wrong?0:old?Math.min(old.b+1,5):1;p.f[fid]={b,due:addDays(d,wrong?1:INT[b]),e:(old&&old.e)||(wrong?0:1)}}
 function finish(){
   const d=today(),before=S.hist[d]||0,perfect=R.wrong.size===0&&R.n>0&&R.late===0;
   if(perfect)R.xp+=10;
   const units=[...new Set(R.steps.map(x=>x.t).filter(t=>t.unit&&!t.sub.builtin).map(t=>t.id))],uBefore={};
   markStart(units);const rb={};units.forEach(id=>{const t=byId(id);uBefore[id]=uProg(t.sub,t.unit);rb[id]=quizReady(t)});
   const lvBefore={};R.tops.forEach(id=>{const t=byId(id);if(t&&t.unit&&!t.sub.builtin)lvBefore[id]=[1,2,3].map(L=>done(t,L))});
-  R.seen.forEach(fid=>{if(fid.startsWith('pq:')){const id=fid.slice(3),o=S.pqs[id]||{n:0,ok:0};o.n++;if(!R.wrong.has(fid))o.ok++;o.last=R.wrong.has(fid)?0:1;S.pqs[id]=o;return}const tid=fid.split(':')[0],p=P(tid),old=p.f[fid];const b=R.wrong.has(fid)?0:old?Math.min(old.b+1,5):1;p.f[fid]={b,due:addDays(d,R.wrong.has(fid)?1:INT[b]),e:(old&&old.e)||(R.wrong.has(fid)?0:1)}});
+  R.seen.forEach(fid=>recSeen(fid,R.wrong.has(fid),d));
   const msgs=[];
   const newlyMet=credit(),tpNow=todayPlan();
   if(R.n>0&&!R.fresh&&S.last!==d)msgs.push(['',curStreak()?'Practice and revision don\'t extend your streak. Learn something new today to keep it going.':'Practice and revision don\'t start a streak. Learn something new to start one.']);
@@ -1259,6 +1275,7 @@ function finish(){
   if(R.late)msgs.push(['bad',`${R.late} correct answer${R.late>1?'s were':' was'} too slow to earn XP.`]);
   const grp=d=>R.times.filter(x=>x[1]===d).map(x=>x[0]);
   [['easy','Easy'],['medium','Medium'],['hard','Hard']].forEach(([d,l])=>{const a=grp(d);if(!a.length)return;const avg=a.reduce((x,y)=>x+y,0)/a.length,[c,m]=pace(avg,d);msgs.push([c==='good'?'good':c==='bad'?'bad':'',`${l}: ${fmtS(avg)} average. ${m}`])});
+  if(R.key&&S.runs)delete S.runs[R.key];
   save();pushBoard();
   const acc=R.n?Math.round(100*R.ok/R.n):100,avgAll=R.times.length?R.times.reduce((x,y)=>x+y[0],0)/R.times.length:0;
   $('#done').innerHTML=`<div class="dwrap pop">${MEDAL}<h1>${perfect?'Perfect lesson!':'Lesson complete'}</h1><div class="tiles"><div><b>+${R.xp}</b><span>XP earned</span></div><div><b>${acc}%</b><span>First try</span></div><div><b>${fmtS(avgAll)}</b><span>Avg time</span></div><div><b>${R.best}</b><span>Best combo</span></div></div>${perfect?'<div class="msg good">No mistakes and always in time: +10 bonus XP.</div>':''}${msgs.map(([c,m])=>`<div class="msg ${c}">${esc(m)}</div>`).join('')}${quizNow?'<button class="btn blue" id="toquiz">Take the topic quiz</button><button class="btn ghost" id="back">Later</button>':keep?'<button class="btn blue" id="more">Keep going</button><button class="btn ghost" id="back">Done for now</button>':'<button class="btn blue" id="back">Continue</button>'}<button class="linkb" id="lookback" style="display:block;margin:10px auto 0">Look back over this lesson</button></div>`;
@@ -1269,7 +1286,58 @@ function finish(){
 }
 $('#quit').onclick=()=>{if(QZ){if(!QZ.quitArm){QZ.quitArm=true;toast('Tap × again to end the quiz now. Unanswered questions count as wrong.');setTimeout(()=>{if(QZ)QZ.quitArm=false},4000);return}clearInterval(QZ.timer);while(QZ.ans.length<QZ.items.length)QZ.ans.push({pick:null,ok:false,time:0,timeout:false});QZ.i=QZ.items.length;qFinish();return}
   stopTimer();if(R&&R.closed){backToLive();return}
-  const t=R&&R.steps[0]&&R.steps[0].t;if(R){accrue();credit();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome()};
+  const t=R&&R.steps[0]&&R.steps[0].t,kept=R&&R.key&&livePos()>0?R.key:null;if(R){accrue();credit();snapRun();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome();
+  if(kept)toast(kept==='rev'?'Saved. Tap Review to continue where you stopped.':kept.startsWith('pq|')?'Saved. Open these questions again to continue where you stopped.':'Saved. Tap the topic to continue where you stopped.')};
+
+/* ---------- unfinished sessions ----------
+   Lessons (key: topic id), reviews ('rev'), past-question practice ('pq|subject|year|kind') and topic quizzes ('qz|topic id')
+   are saved in S.runs after every step, when × is tapped and when the app is closed, so the student can carry on from
+   there later (on any device). Opening one again offers Continue or Start fresh.
+   Start fresh first records what was answered (XP, facts learned or missed, pace, study time) and the new session leaves
+   those parts out, so nothing is counted twice. A saved session is also recorded and dropped if its content changed. */
+const RUNF=['k','again','shown','practice','rev','retry','ans','ord','el','txt','d'];
+const pqRow=(sid,fid)=>(PQ[sid]||[]).find(r=>'pq:'+r.id===fid);
+function snapRun(){if(!R||!R.key||R.closed)return;
+  const steps=R.steps.map(s=>{const o={t:s.t.id,f:s.f.id};if(s.pq)o.pq=1;else if(s.q)o.qi=s.f.q.indexOf(s.q);RUNF.forEach(k=>{if(s[k]!=null&&s[k]!==false)o[k]=s[k]});return o});
+  putRun(R.key,{i:R.i,steps,meta:R.meta,c:{combo:R.combo,best:R.best,ok:R.ok,n:R.n,xp:R.xp,late:R.late,wrong:[...R.wrong],seen:[...R.seen],tops:[...R.tops],times:R.times,tm:R.tm,fresh:R.fresh}})}
+function putRun(key,r){S.runs=S.runs||{};r.at=Date.now();S.runs[key]=r;Object.keys(S.runs).sort((a,b)=>S.runs[b].at-S.runs[a].at).slice(10).forEach(k=>dropRun(k,true))}
+function getRun(key){const r=S.runs&&S.runs[key];if(!r)return null;
+  if(r.quiz){const q=getQuizRun(key);if(q)return q}
+  else try{const pt=r.meta&&r.meta.sid?(()=>{const s=SUBS.find(x=>x.id===r.meta.sid);if(!s)throw 0;return{id:'pq-'+s.id,title:r.meta.title,color:s.color,sub:s,levels:[]}})():null;
+    const steps=r.steps.map(o=>{let s;
+      if(o.pq){const row=pt&&pqRow(pt.sub.id,o.f);if(!row)throw 0;s=pqStep(row,pt)}
+      else{const t=byId(o.t),ps=String(o.f).split(':'),f=t&&facts(t,+ps[ps.length-2]).find(x=>x.id===o.f);if(!f)throw 0;s={t,f};if(o.qi!=null){s.q=f.q&&f.q[o.qi];if(!s.q)throw 0}}
+      RUNF.forEach(k=>{if(k in o)s[k]=o[k]});return s});
+    const i=r.i+(steps[r.i]&&steps[r.i].ans?1:0);
+    if(i>0&&i<steps.length)return{steps,i,c:r.c||{},meta:r.meta}}catch(e){}
+  dropRun(key);return null}   // nothing done yet, already over, or its content changed: record what was answered and drop it
+const runPct=run=>Math.max(1,Math.min(99,Math.round(100*run.i/run.steps.length)));
+// Records the answered part of an unfinished session, then drops it. Returns the ids answered (for leaving them out next time).
+function dropRun(key,quiet){const r=S.runs&&S.runs[key];if(!r)return new Set();delete S.runs[key];
+  const d=today(),done=new Set();
+  if(r.quiz){const Z=quizFromRun(r);(r.ans||[]).forEach((a,k)=>{const it=Z&&Z.items[k];const fid=it?it.fid:(r.items[k]||{}).fid;if(fid)done.add(fid)});
+    if(Z)quizRecord(Z,r.ans||[],d,false)}
+  else{const c=r.c||{},wrong=new Set(c.wrong||[]);
+    markStart([...new Set((c.tops||[]).filter(id=>{const t=byId(id);return t&&t.unit&&!t.sub.builtin}))]);
+    (c.seen||[]).forEach(fid=>{done.add(fid);if(fid.startsWith('pq:')||(()=>{const t=byId(fid.split(':')[0]);return t&&allFacts(t).some(f=>f.id===fid)})())recSeen(fid,wrong.has(fid),d)});
+    if(c.n>0&&c.fresh&&S.last!==d){S.streak=S.last===addDays(d,-1)?S.streak+1:1;S.last=d;S.best=Math.max(S.best,S.streak)}
+    addXP(c.xp||0,d);(c.times||[]).forEach(([e,dd])=>{const b=S.tm[TMK[dd]||'m'];b[0]+=e;b[1]++});
+    const keep=R;R={tm:c.tm||{}};credit();R=keep;
+    (c.tops||[]).forEach(id=>{const t=byId(id);if(t)advance(t)})}
+  if(!quiet)save();return done}
+function addXP(xp,d){S.xp+=xp;S.hist[d]=(S.hist[d]||0)+xp;const wk=weekKey();if(S.wk!==wk){S.wk=wk;S.wxp=0}S.wxp+=xp}
+function askResume(run,txt,go,fresh){
+  const m=document.createElement('div');
+  m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-labelledby','rsh');
+  m.innerHTML=`<div class="mbox pop"><h3 id="rsh">Continue where you stopped?</h3><p>${txt}</p><div class="two"><button class="btn ghost" id="rsnew">Start fresh</button><button class="btn blue" id="rsgo">Continue</button></div><p class="help" style="margin:14px 0 0;font-size:15px">Start fresh keeps what you've answered so far and gives you new questions.</p></div>`;
+  const close=()=>{m.remove();document.removeEventListener('keydown',esc_)},esc_=e=>{if(e.key==='Escape')close()};
+  document.body.append(m);document.addEventListener('keydown',esc_);m.onclick=e=>{if(e.target===m)close()};
+  $('#rsgo').onclick=()=>{close();go()};
+  $('#rsnew').onclick=()=>{close();fresh()};
+  $('#rsgo').focus()}
+function resumeRun(key,run){const c=run.c;if(!key.startsWith('pq|')&&key!=='rev')S.cur=key;
+  R={steps:run.steps,key,meta:run.meta||null,i:run.i,combo:c.combo||0,best:c.best||0,ok:c.ok||0,n:c.n||0,xp:c.xp||0,late:c.late||0,wrong:new Set(c.wrong||[]),seen:new Set(c.seen||[]),tops:new Set(c.tops||[]),times:c.times||[],tm:c.tm||{},lt:null,pi:run.i,v:null,closed:false,fresh:c.fresh!=null?!!c.fresh:run.steps.some(isFresh)};
+  show('lesson');step()}
 
 /* ---------- extra notes ----------
    A level can carry optional longer notes in Markdown (headings, lists, tables, bold and italic) with LaTeX maths.
@@ -1355,16 +1423,20 @@ function pqPanel(s){const vis0=(PQ[s.id]||[]).filter(r=>r.q&&!r.q.hidden),vis=vi
   return `${all.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Past questions</b> <small style="color:var(--mute)">${done} of ${all.length} tried</small><p class="help" style="margin:4px 0 10px">Real exam questions, timed like the rest. New and previously missed questions come first.</p><button class="btn blue" data-pqgo="" style="width:100%">Practise 10 questions</button>${years.length?`<div class="chips">${years.map(y=>`<button class="chip" data-pqgo="${esc(y)}">${esc(y)}</button>`).join('')}</div>`:''}</div>`:''}
   ${th.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Theory questions</b> <small style="color:var(--mute)">${tdone} of ${th.length} tried</small><p class="help" style="margin:4px 0 10px">Write your answer, then see which key points you covered, with a green tick or red cross for each, and the model answer. You earn ${TH_XP} XP for each key point you include. Not timed.</p><button class="btn blue" data-thgo="1" style="width:100%">Answer 3 theory questions</button></div>`:''}
   ${prm.length||prt.length?`<div class="panel pqbox" style="margin-bottom:6px"><b>Practice questions</b> <small style="color:var(--mute)">${prDone} of ${prm.length+prt.length} tried</small><p class="help" style="margin:4px 0 10px">Extra exam-style problems written for this course (not from past papers). New and previously missed ones come first.</p>${prm.length?'<button class="btn blue" data-prgo="mc" style="width:100%">Practise 10 questions</button>':''}${prt.length?`<button class="btn ${prm.length?'ghost':'blue'}" data-prgo="th" style="width:100%;margin-top:8px">Answer 3 theory questions</button>`:''}</div>`:''}`}
+const pqStep=(r,t)=>{const q=pqQ(r);return{k:'ask',t,q,pq:true,f:{id:'pq:'+r.id,t:q.p,why:q.k==='th'?q.model:q.sol,ex:'',q:[q],L:2}}};
 function pqQ(r){const q=r.q;if(q.k==='th')return Object.assign({k:'th',p:q.p,ctx:q.ctx||'',marks:q.marks||q.pts.reduce((a,p)=>a+(p.m||1),0),pts:q.pts,model:q.model||'',d:q.d||'medium'},q.img?{img:q.img}:{},Array.isArray(q.fa)&&q.fa.length?{fa:q.fa}:{});return Object.assign({k:'mc',p:q.p,o:q.o,a:q.a,d:q.d||'medium',sol:q.sol||'',steps:q.steps||null},q.img?{img:q.img}:{})}
-async function startPQ(sid,year,kind){
+async function startPQ(sid,year,kind,avoid){
   const s=SUBS.find(x=>x.id===sid);if(!s)return;await loadPQ(sid);await loadImages(sid).catch(()=>{});
+  const key=`pq|${sid}|${year||''}|${kind||''}`;
+  if(!avoid){const run=getRun(key);if(run)return askResume(run,`You're ${runPct(run)}% through ${esc(run.meta.title)}.`,()=>resumeRun(key,run),()=>startPQ(sid,year,kind,dropRun(key)))}
   const pr=kind==='pmc'||kind==='pth';if(kind==='pth')kind='th';else if(kind==='pmc')kind=null;
   const pool=(PQ[sid]||[]).filter(r=>r.q&&!r.q.hidden&&!!r.q.pr===pr&&(kind==='th'?r.q.k==='th'&&Array.isArray(r.q.pts)&&r.q.pts.length:Array.isArray(r.q.o)&&Number.isInteger(r.q.a))&&(!year||String(r.year)===String(year)));
   if(!pool.length){toast('No questions found.');return}
   const rank=r=>{const o=S.pqs[r.id];return !o?0:o.last===0?1:2};
-  const pick=shuffle(pool).sort((a,b)=>rank(a)-rank(b)).slice(0,kind==='th'?3:10);
+  const want=kind==='th'?3:10,av=avoid&&avoid.size?pool.filter(r=>!avoid.has('pq:'+r.id)):pool;   // after Start fresh: leave out what was just answered, if enough remain
+  const pick=shuffle(av.length>=want?av:pool).sort((a,b)=>rank(a)-rank(b)).slice(0,want);
   const t={id:'pq-'+sid,title:`${s.title} ${pr?'practice':''}${pr&&kind==='th'?' theory':''}${!pr?(kind==='th'?'theory questions':'past questions'):' questions'}${year?' '+year:''}`,color:s.color,sub:s,levels:[]};
-  runSteps(pick.map(r=>{const q=pqQ(r);return{k:'ask',t,q,pq:true,f:{id:'pq:'+r.id,t:q.p,why:q.k==='th'?q.model:q.sol,ex:'',q:[q],L:2}}}));
+  runSteps(pick.map(r=>pqStep(r,t)),key,{sid,title:t.title});
 }
 
 /* ---------- flagging facts and questions ----------
@@ -1898,21 +1970,24 @@ let QZ=null;
 const quizDone=id=>S.quiz&&S.quiz[id];
 const quizPassed=id=>!!(quizDone(id)&&quizDone(id).passed);
 function quizReady(t){if(!t||!t.unit||t.sub.builtin)return false;const n=uSess(t.unit);return n?uProg(t.sub,t.unit)>=n-1e-6:mastered(t)}
-function buildQuiz(t){
+function buildQuiz(t,avoid){const later=x=>avoid&&avoid.has(x.fid)?1:0;   // after Start fresh: questions just answered go last
   const own=[];allFacts(t).forEach(f=>(f.q||[]).forEach(q=>{if(q.k==='mc'||q.k==='tf')own.push({q,f,fid:f.id})}));
   const pq=(PQ[t.sub.id]||[]).filter(r=>r.unit===t.id&&r.q&&!r.q.hidden&&Number.isInteger(r.q.a)).map(r=>{const q=pqQ(r);return{q,f:{id:'pq:'+r.id,t:q.p,why:q.sol||'',L:2},fid:'pq:'+r.id,pq:true}});
   const seen=new Set(),first=[],rest=[];shuffle(own).forEach(x=>{(seen.has(x.fid)?rest:first).push(x);seen.add(x.fid)});
-  return shuffle(shuffle(pq).slice(0,5).concat(first,rest).slice(0,QUIZ_N)).map(x=>Object.assign(x,{order:x.q.k==='mc'?shuffle(x.q.o.map((_,i)=>i)):[1,0]}));
+  return shuffle(shuffle(pq).sort((a,b)=>later(a)-later(b)).slice(0,5).concat(first,rest).sort((a,b)=>later(a)-later(b)).slice(0,QUIZ_N)).map(x=>Object.assign(x,{order:x.q.k==='mc'?shuffle(x.q.o.map((_,i)=>i)):[1,0]}));
 }
-function renderQuizIntro(id){
-  const t=byId(id);if(!t)return goHome();const items=buildQuiz(t),qd=quizDone(id);
+function renderQuizIntro(id,avoid){
+  const t=byId(id);if(!t)return goHome();
+  if(!avoid){const run=getRun('qz|'+id);if(run)return askResume(run,`You've answered ${run.i} of ${run.Z.items.length} questions in the topic quiz on ${esc(t.title)}. The clock kept running while you were away.`,()=>resumeQuiz(run),()=>renderQuizIntro(id,dropRun('qz|'+id)))}
+  const items=buildQuiz(t,avoid),qd=quizDone(id);
   $('#qz').innerHTML=`<div class="subhead"><button class="back" id="qback" aria-label="Back">${BACK}</button><h1>Topic quiz</h1></div>
   <div class="panel" style="margin:0 14px 14px"><b style="font:600 20px Fredoka,sans-serif">${esc(t.title)}</b><p class="help" style="margin:6px 0 0">You've covered every session of this topic. Pass this quiz to mark it <b>Mastered</b>.</p></div>
   <div class="panel" style="margin:0 14px"><ul class="bul" style="margin:0;padding-left:20px;display:grid;gap:6px">
    <li><b>${items.length} questions</b> from the whole topic${items.some(x=>x.pq)?', including real past questions':''}.</li>
    <li><b>30 seconds</b> per easy question, <b>45 seconds</b> per medium one and <b>1 minute</b> per hard one.</li>
    <li>Time you don't use <b>carries over</b> to the next question.</li>
-   <li><b>No going back.</b> Once you move on, answered or not, that question is locked. When the time runs out, it moves on by itself.</li>
+   <li><b>No going back.</b> Once you move on, answered or not, that question is locked. When the time runs out, it moves on by itself, and an answer you picked counts.</li>
+   <li><b>No pausing.</b> Leaving with × ends the quiz. If the app closes by accident, you can continue, but the clock keeps running while you're away.</li>
    <li>Pass mark: <b>${Math.round(QUIZ_PASS*100)}%</b>. Answers and explanations are shown at the end.</li></ul>
    ${qd?`<p class="help" style="margin:12px 0 0">Your best score so far: <b>${qd.best}%</b> (${qd.attempts} attempt${qd.attempts>1?'s':''}).</p>`:''}</div>
   <div style="margin:18px 14px;display:grid;gap:10px">${items.length?'<button class="btn blue" id="qstart">Start quiz</button>':'<p class="sync">No questions are ready for this topic yet.</p>'}<button class="btn ghost" id="qprac">Practise the topic instead</button></div>`;
@@ -1927,17 +2002,36 @@ function startQuiz(id,items){
 }
 function qStep(){
   const it=QZ.items[QZ.i];setFlag(null);if(!it)return qFinish();
-  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.lim=base+carry;QZ.t0=Date.now();QZ.pick=null;
+  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.cc=carry;QZ.lim=base+carry;QZ.t0=Date.now()-(QZ.el0||0)*1000;QZ.el0=0;QZ.pick=QZ.pick0!=null?QZ.pick0:null;QZ.pkAt=QZ.pick0!=null?QZ.pkAt0:null;QZ.pick0=QZ.pkAt0=null;quizSnap();save();
   $('#lbar').style.width=Math.round(100*QZ.i/QZ.items.length)+'%';$('#combo').textContent=`${QZ.i+1} of ${QZ.items.length}`;
   const q=it.q,opts=q.k==='mc'?it.order.map(i=>`<button class="opt" data-v="${i}">${esc(q.o[i])}</button>`).join(''):'<button class="opt" data-v="1">True</button><button class="opt" data-v="0">False</button>';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">Topic quiz · Question ${QZ.i+1} of ${QZ.items.length}<em>${d}</em>${it.pq?'<em>Past question</em>':''}</span><p class="help" style="margin:4px 0 0">${base}s${carry?` + ${carry}s carried over`:''}</p><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}<div class="opts${q.k==='tf'?' tfrow':''}">${opts}</div></div>`;
   math($('#stage'));
   const a=$('#act');a.className='act';a.innerHTML=`<button class="btn blue" id="qnext">${QZ.i+1<QZ.items.length?'Skip':'Skip and finish'}</button>`;
   const setBtn=()=>{$('#qnext').textContent=QZ.pick==null?(QZ.i+1<QZ.items.length?'Skip':'Skip and finish'):(QZ.i+1<QZ.items.length?'Next':'Finish quiz')};
-  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');QZ.pick=b.dataset.v;setBtn()});
+  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');QZ.pick=b.dataset.v;QZ.pkAt=(Date.now()-QZ.t0)/1000;setBtn()});
   $('#qnext').onclick=()=>qNext(false);
+  if(QZ.pick!=null){const b=$('#stage').querySelector(`.opt[data-v="${QZ.pick}"]`);if(b)b.classList.add('sel');setBtn()}
   clearInterval(QZ.timer);QZ.timer=setInterval(qTick,200);qTick();
 }
+// Saving a topic quiz part-way (see "unfinished sessions"), for when the app closes. × ends the quiz instead.
+// The clock keeps running while the student is away: on Continue, that time comes off the question that was on screen.
+function quizSnap(){if(!QZ||QZ.i>=QZ.items.length)return;const el=QZ.t0?Math.max(0,Math.min(QZ.lim,(Date.now()-QZ.t0)/1000)):0;
+  putRun('qz|'+QZ.id,{quiz:1,id:QZ.id,i:QZ.i,carry:QZ.cc||0,el,pick:QZ.pick,pkAt:QZ.pkAt,ans:QZ.ans,started:QZ.started,items:QZ.items.map(it=>({fid:it.fid,pq:it.pq?1:0,qi:it.pq?0:(it.f.q||[]).indexOf(it.q),order:it.order}))})}
+function quizFromRun(r){const t=byId(r.id);if(!t||!t.sub)return null;
+  try{return{id:r.id,t,items:r.items.map(x=>{if(x.pq){const row=pqRow(t.sub.id,x.fid);if(!row)throw 0;const q=pqQ(row);return{q,f:{id:x.fid,t:q.p,why:q.sol||'',L:2},fid:x.fid,pq:true,order:x.order}}
+    const f=allFacts(t).find(f=>f.id===x.fid),q=f&&(f.q||[])[x.qi];if(!q)throw 0;return{q,f,fid:x.fid,order:x.order}})}}catch(e){return null}}
+function getQuizRun(key){const r=S.runs[key],Z=quizFromRun(r);if(!Z||!(r.i>0||r.el>=1)||r.i>=Z.items.length)return null;return{quiz:true,Z,i:r.i,r}}
+function resumeQuiz(run){const r=run.r,Z=run.Z;
+  QZ={id:Z.id,t:Z.t,items:Z.items,i:r.i,carry:r.carry||0,el0:(r.el||0)+Math.max(0,(Date.now()-(r.at||Date.now()))/1000),pick0:r.pick,pkAt0:r.pkAt,ans:r.ans||[],timer:null,t0:0,lim:0,pick:null,quitArm:false,started:r.started||Date.now()};
+  $('#lback').hidden=true;show('lesson');qStep()}
+// The answered part of a quiz that was left and then started again: XP for right answers, missed ones go to review.
+// It doesn't count as an attempt.
+function quizRecord(Z,ans,d){let right=0;
+  ans.forEach((a,k)=>{const it=Z.items[k];if(!it)return;const b=S.tm[TMK[diffOf(it.q,it.f,Z.t)]||'m'];b[0]+=a.time;b[1]++;if(a.ok){right++;return}
+    if(it.pq){const o=S.pqs[it.fid.slice(3)]||{n:0,ok:0};o.n++;o.last=0;S.pqs[it.fid.slice(3)]=o;return}
+    const r=P(Z.t.id).f[it.fid];if(r){r.b=0;r.due=d}});
+  addXP(right*10,d)}
 function qTick(){
   const left=QZ.lim-(Date.now()-QZ.t0)/1000,tm=$('#tmr'),cd=$('#cd');tm.hidden=false;
   if(left>0){tm.className='tmr'+(left<=10?' low':'');tm.textContent=Math.ceil(left)+'s';
@@ -1946,7 +2040,7 @@ function qTick(){
 }
 function qNext(timeout){
   if(!QZ)return;clearInterval(QZ.timer);$('#cd').hidden=true;$('#cd').dataset.n='';
-  const it=QZ.items[QZ.i],el=Math.min(QZ.lim,(Date.now()-QZ.t0)/1000),pick=timeout?null:QZ.pick;
+  const it=QZ.items[QZ.i],el=Math.min(QZ.lim,(Date.now()-QZ.t0)/1000),pick=timeout&&!(QZ.pkAt<=QZ.lim)?null:QZ.pick;
   const ok=pick!=null&&(it.q.k==='mc'?+pick===it.q.a:(pick==='1')===!!it.q.a);
   QZ.ans.push({pick,ok,time:el,timeout:timeout&&QZ.pick==null});
   QZ.carry=timeout?0:Math.max(0,QZ.lim-el);QZ.i++;qStep();
@@ -1963,6 +2057,7 @@ function qFinish(){
   if(!prev.passed&&S.last!==d){S.streak=S.last===addDays(d,-1)?S.streak+1:1;S.last=d;S.best=Math.max(S.best,S.streak)}
   S.xp+=xp;S.hist[d]=(S.hist[d]||0)+xp;const wk=weekKey();if(S.wk!==wk){S.wk=wk;S.wxp=0}S.wxp+=xp;S.n++;
   Z.ans.forEach((a,k)=>{const b=S.tm[TMK[diffOf(Z.items[k].q,Z.items[k].f,t)]||'m'];b[0]+=a.time;b[1]++});
+  if(S.runs)delete S.runs['qz|'+id];
   save();pushBoard();QZ=null;
   const wrongFacts=[...new Set(Z.items.filter((it,k)=>!Z.ans[k].ok&&!it.pq).map(it=>it.fid))];
   const C=2*Math.PI*50,used=Z.ans.reduce((x,a)=>x+a.time,0);
@@ -1977,7 +2072,7 @@ function qFinish(){
   $('#qz').querySelectorAll('[data-qflag]').forEach(b=>b.onclick=()=>{const it=Z.items[+b.dataset.qflag];openFlag(flagTarget(t,it.f,it.q),()=>{b.textContent=FLAGS.has(flagTarget(t,it.f,it.q).item)?'Flagged':'Flag a problem'})});
   const back=()=>t.sub?renderSubj(t.sub.id):goHome();
   if(passed)$('#qagain').onclick=back;else{$('#qagain').onclick=()=>renderQuizIntro(id);$('#qdone').onclick=back;
-    $('#qreview').onclick=()=>{const fs=allFacts(t).filter(f=>wrongFacts.includes(f.id));fs.length?begin(fs.map(f=>({t,f})),[]):renderQuizIntro(id)}}
+    $('#qreview').onclick=()=>{const fs=allFacts(t).filter(f=>wrongFacts.includes(f.id));fs.length?begin(fs.map(f=>({t,f})),[],t.id):renderQuizIntro(id)}}
 }
 
 /* ---------- categories and course registration ---------- */
@@ -2331,7 +2426,7 @@ async function startApp(session){
   if(LINKERR){history.replaceState(null,'',location.pathname);if(!data.session){renderAuth(/expired|invalid/i.test(LINKERR)?'That link has expired or was already used. Sign in, or request a new link.':LINKERR,'in');return}}
   if(recovering){started=true;history.replaceState(null,'',location.pathname);renderNewPw();return}
   if(data.session){if(!started){started=true;startApp(data.session)}}else renderAuth();
-  window.addEventListener('pagehide',()=>{if(UID)push()});
+  window.addEventListener('pagehide',()=>{if(R&&R.key&&!R.closed){snapRun();save()}if(QZ){quizSnap();save()}if(UID)push()});
 })();
 }
 </script>
