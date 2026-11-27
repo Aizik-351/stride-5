@@ -1175,7 +1175,7 @@ function showSolution(){
   const a=$('#act');a.className='act bad';a.innerHTML=`<div class="fb"><h3>Study this one</h3><p style="margin:-4px 0 10px">No XP this time. It will come back for another try before the lesson ends.</p></div><button class="btn bad" id="nx">Continue</button>`;
   $('#nx').onclick=()=>{R.i++;step()};
 }
-function check(auto){
+function check(auto){auto=auto===true;   // true only from the timer; a click passes its event here
   const s=R.steps[R.i],q=s.q,e=auto?T.lim:elapsed(),inTime=e<=T.lim;stopTimer();let ok=false,note='';
   if(q.k==='mc')ok=+pick===q.a;
   else if(q.k==='tf')ok=(pick==='1')===!!q.a;
