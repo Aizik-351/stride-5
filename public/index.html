@@ -162,6 +162,12 @@ details summary{cursor:pointer;font-weight:800;color:var(--blue2);min-height:32p
 .tgt.s3{border-color:var(--bad);background:var(--badbg);color:var(--bad)}.tgt.s3 h3{color:var(--bad)}.tgt.s3{animation:nudge 2.4s ease-in-out infinite}
 .tgt.ok{border-color:var(--ok);color:var(--ok)}
 .tgt .linkb{padding:0;min-height:32px}
+.tgl{list-style:none;margin:10px 0 2px;padding:0;display:grid;gap:4px}
+.tgs{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:8px;row-gap:4px;align-items:center;width:100%;background:none;border:0;padding:5px 0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.tgs .dot{width:10px;height:10px;border-radius:50%}
+.tgs b{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tgs em{font-style:normal;color:var(--mute);font-size:14px;white-space:nowrap}.tgs.done em{color:var(--ok);font-weight:700}
+.tgs .tgb{grid-column:2/4;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.tgs .tgb i{display:block;height:100%;background:var(--blue2);border-radius:3px}.tgs.done .tgb i{background:var(--ok)}
 @keyframes nudge{0%,90%,100%{transform:none}93%{transform:translateX(-3px)}96%{transform:translateX(3px)}}
 .pill.met{border-color:var(--sun);background:var(--warnbg)}
 label.chk{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-weight:400;margin:0;cursor:pointer}
@@ -499,10 +505,13 @@ function targetBanner(tp){
   if(!tp.tm)return '';const C=2*Math.PI*22,pc=Math.round(tp.pct*100);
   const ring=`<span class="mini"><svg viewBox="0 0 50 50" aria-hidden="true"><circle class="trk" cx="25" cy="25" r="22"/><circle class="val" cx="25" cy="25" r="22" style="stroke-dasharray:${C};stroke-dashoffset:${C*(1-tp.pct)}"/></svg><b>${pc}%</b></span>`;
   const edit='<button class="linkb" data-plan="1">Edit plan</button>';
-  if(tp.pct>=1)return `<div class="tgt ok" role="status">${ring}<div><h3>Today's target is done</h3><p>You're on track for your exams. Extra sessions put you ahead. ${edit}</p></div></div>`;
+  // what makes up today's target: each subject's sessions for today, and how many are done
+  const list=`<ul class="tgl" aria-label="Today's sessions by subject">${tp.rows.filter(r=>r.tgt).map(r=>{const ok=r.done>=r.tgt-1e-6,d=Math.min(r.tgt,Math.floor(r.done+1e-6));
+    return `<li><button class="tgs${ok?' done':''}" data-s="${r.s.id}"><span class="dot" style="background:${r.s.color}" aria-hidden="true"></span><b>${esc(r.s.title)}</b><em>${ok?'✓ ':''}${d} of ${r.tgt} session${r.tgt===1?'':'s'}</em><span class="tgb" aria-hidden="true"><i style="width:${Math.round(100*Math.min(1,r.done/r.tgt))}%"></i></span></button></li>`}).join('')}</ul>`;
+  if(tp.pct>=1)return `<div class="tgt ok" role="status">${ring}<div><h3>Today's target is done</h3>${list}<p>You're on track for your exams. Extra sessions put you ahead. ${edit}</p></div></div>`;
   const st=dayStage(),sl=`${tp.left} session${tp.left===1?'':'s'}`;
   const [h,p]=st===1?[`Today's target: ${pc}% done`,`${sl} to go today. Each session is a set of facts and questions to get right, usually about ${Math.round(tp.mins/Math.max(1,tp.tm))} minutes.`]:st===2?[`Only ${pc}% of today's target done`,`The day is slipping away and you still have ${sl} to do. Start one now to stay on track.`]:[`Last call: ${pc}% of today's target`,`The day is almost over and you're behind. Even one session now keeps you closer to your exam goal.`];
-  return `<div class="tgt s${st}" role="status">${ring}<div><h3>${h}</h3><p>${p} ${edit}</p></div></div>`;
+  return `<div class="tgt s${st}" role="status">${ring}<div><h3>${h}</h3>${list}<p>${p} ${edit}</p></div></div>`;
 }
 
 
