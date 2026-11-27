@@ -392,12 +392,12 @@ async function ai(prompt,o={}){
 async function imgData(f){const bmp=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return{type:'image/jpeg',data:c.toDataURL('image/jpeg',.82).split(',')[1]}}
 
 /* ---------- state + sync ---------- */
-const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},xn:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
+const DEF={v:2,xp:0,goal:30,streak:0,best:0,last:null,n:0,cur:null,hist:{},tp:{},custom:[],subjects:[],tm:{e:[0,0],m:[0,0],h:[0,0]},wk:null,wxp:0,t:0,plan:{subs:[],tt:{},remind:false,own:{}},um:{},day:{d:null,u:{}},tmet:{},tdays:0,pqs:{},quiz:{},xn:{},runs:{},st:{d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}}};
 const fresh=()=>JSON.parse(JSON.stringify(DEF));
 function merge(r){const s=Object.assign(fresh(),r);
   // study time: one total per day, plus all-time and best day/week. Older saves start all-time from per-topic minutes.
   if(!r||!r.st)s.st.tot=Math.round(Object.values(s.um||{}).reduce((a,b)=>a+(+b||0),0)*10)/10;
-  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};return s}
+  s.st=Object.assign({d:{},tot:0,bd:{d:null,m:0},bw:{w:null,m:0}},s.st);s.tm=Object.assign({e:[0,0],m:[0,0],h:[0,0]},s.tm);s.plan=Object.assign({subs:[],tt:{},remind:false,own:{}},s.plan);s.plan.own=s.plan.own||{};s.um=s.um||{};s.day=s.day||{d:null,u:{}};s.tmet=s.tmet||{};s.pqs=s.pqs||{};s.quiz=s.quiz||{};s.runs=s.runs||{};return s}
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY+'-'+UID));if(r&&r.v)return merge(r)}catch(e){}return fresh()}
 let NOTES={};   // extra notes per prepared level: "<unit id>-L<level>" -> Markdown
 let S=fresh(),R=null,pick=null,T=null,DB=null,USER=null,UID=null,ref=null,busy=false,again=false,boardTab='week',openSub=null,SUBS=[],LES={},LESIDS=new Set(),LOADED=new Set(),GEN={},ADMIN=false,PROFILE=null,pushT=null,CFG={},IMGS={},IMGLOADED=new Set(),PQ={},ALLOWED_IMG=new Set();
@@ -1002,6 +1002,7 @@ async function create(title){
 async function startTopic(id,again,practice){
   let t=byId(id);if(!t)return;
   if(t.unit&&!t.sub.builtin&&!LOADED.has(t.sub.id)){try{loading(true,'Loading lesson…');await loadLessons(t.sub.id)}catch(e){}finally{loading(false)}t=byId(id)}
+  if(!again&&!practice){const run=getRun(id);if(run)return askResume(t,run)}
   if(!again&&!practice&&quizReady(t)&&!quizPassed(t.id)){await loadPQ(t.sub.id).catch(()=>{});return renderQuizIntro(t.id)}
   const p=P(t.id);S.cur=t.id;advance(t);
   if(t.custom&&!t.levels[p.lvl-1]&&!again&&!AION()){toast(p.lvl>1?`Level ${p.lvl} of ${t.title} isn't ready yet. Keep revising, and check back soon.`:`${t.title} isn't ready yet. Check back soon.`);return}
@@ -1017,9 +1018,9 @@ async function startTopic(id,again,practice){
   const ids=new Set(picks.map(f=>f.id));
   let rev=allFacts(t).filter(f=>!ids.has(f.id)&&seen(f)&&seen(f).due<=today()).sort((a,b)=>bx(a)-bx(b)).slice(0,2);
   if(!picks.length&&!rev.length)rev=shuffle(allFacts(t)).sort((a,b)=>bx(a)-bx(b)).slice(0,4);
-  begin(picks.map(f=>({t,f})),rev.map(f=>({t,f})));
+  begin(picks.map(f=>({t,f})),rev.map(f=>({t,f})),t.id);
 }
-function begin(learn,rev){
+function begin(learn,rev,topic){
   const steps=[],pool=[],ask=(x,q,o)=>Object.assign({k:'ask',q},x,o||{});
   learn.filter(x=>!x.f.w).forEach(x=>{steps.push(Object.assign({k:'learn',again:!!P(x.t.id).f[x.f.id]},x),ask(x,x.f.q[0]));if(x.f.q[1])pool.push(ask(x,x.f.q[1]))});
   const wk=learn.filter(x=>x.f.w);
@@ -1027,7 +1028,7 @@ function begin(learn,rev){
   wk.forEach(x=>x.f.q.forEach(q=>steps.push(ask(x,q,{practice:true}))));
   rev.forEach(x=>pool.push(ask(x,x.f.q[Math.random()*x.f.q.length|0],{rev:true})));
   steps.push(...shuffle(pool));
-  runSteps(steps);
+  runSteps(steps,topic);
 }
 
 /* ---------- theory questions ----------
@@ -1104,7 +1105,7 @@ function thRender(s,view){
 // got wrong and is relearning, or a past question never answered or last missed. Pure repeats don't count.
 function isFresh(s){if(!s||!s.f)return false;if(s.pq){const o=S.pqs[s.f.id.slice(3)];return !o||o.last===0}
   if(!s.t)return false;const r=P(s.t.id).f[s.f.id];return !r||!(r.b>=1)}
-function runSteps(steps){R={steps,i:0,combo:0,best:0,ok:0,n:0,xp:0,late:0,wrong:new Set(),seen:new Set(),tops:new Set(),times:[],tm:{},lt:null,pi:0,v:null,closed:false,fresh:steps.some(isFresh)};show('lesson');step()}
+function runSteps(steps,topic){if(topic&&S.runs)delete S.runs[topic];R={steps,topic:topic||null,i:0,combo:0,best:0,ok:0,n:0,xp:0,late:0,wrong:new Set(),seen:new Set(),tops:new Set(),times:[],tm:{},lt:null,pi:0,v:null,closed:false,fresh:steps.some(isFresh)};show('lesson');step()}
 function bar(n){$('#lbar').style.width=Math.round(100*n/R.steps.length)+'%';$('#combo').textContent=R.combo>=2?R.combo+'× combo':''}
 function factBody(f){
   if(f.w)return '';
@@ -1113,7 +1114,7 @@ function factBody(f){
 function workedHtml(f,n){const w=f.w,all=n>=w.steps.length;
   return `<ol class="steps">${w.steps.slice(0,n).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${all?`<p class="ansline">Answer: ${esc(w.ans)}</p>${w.why?`<div class="sec"><h4>Why this is correct</h4><p>${esc(w.why)}</p></div>`:''}${w.mistakes.length?`<div class="sec mis"><h4>Common mistakes</h4><ul class="bul">${w.mistakes.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}`:''}`}
 function step(){
-  accrue();stopTimer();R.v=null;const s=R.steps[R.i];bar(R.i);$('#tmr').hidden=true;setFlag(s?flagTarget(s.t,s.f,s.q):null);if(!s)return finish();setBack();
+  accrue();stopTimer();R.v=null;const s=R.steps[R.i];if(s&&R.topic){snapRun();save()}bar(R.i);$('#tmr').hidden=true;setFlag(s?flagTarget(s.t,s.f,s.q):null);if(!s)return finish();setBack();
   const a=$('#act');a.className='act';
   if(s.k==='learn'){
     if(s.f.w){
@@ -1259,6 +1260,7 @@ function finish(){
   if(R.late)msgs.push(['bad',`${R.late} correct answer${R.late>1?'s were':' was'} too slow to earn XP.`]);
   const grp=d=>R.times.filter(x=>x[1]===d).map(x=>x[0]);
   [['easy','Easy'],['medium','Medium'],['hard','Hard']].forEach(([d,l])=>{const a=grp(d);if(!a.length)return;const avg=a.reduce((x,y)=>x+y,0)/a.length,[c,m]=pace(avg,d);msgs.push([c==='good'?'good':c==='bad'?'bad':'',`${l}: ${fmtS(avg)} average. ${m}`])});
+  if(R.topic&&S.runs)delete S.runs[R.topic];
   save();pushBoard();
   const acc=R.n?Math.round(100*R.ok/R.n):100,avgAll=R.times.length?R.times.reduce((x,y)=>x+y[0],0)/R.times.length:0;
   $('#done').innerHTML=`<div class="dwrap pop">${MEDAL}<h1>${perfect?'Perfect lesson!':'Lesson complete'}</h1><div class="tiles"><div><b>+${R.xp}</b><span>XP earned</span></div><div><b>${acc}%</b><span>First try</span></div><div><b>${fmtS(avgAll)}</b><span>Avg time</span></div><div><b>${R.best}</b><span>Best combo</span></div></div>${perfect?'<div class="msg good">No mistakes and always in time: +10 bonus XP.</div>':''}${msgs.map(([c,m])=>`<div class="msg ${c}">${esc(m)}</div>`).join('')}${quizNow?'<button class="btn blue" id="toquiz">Take the topic quiz</button><button class="btn ghost" id="back">Later</button>':keep?'<button class="btn blue" id="more">Keep going</button><button class="btn ghost" id="back">Done for now</button>':'<button class="btn blue" id="back">Continue</button>'}<button class="linkb" id="lookback" style="display:block;margin:10px auto 0">Look back over this lesson</button></div>`;
@@ -1269,7 +1271,37 @@ function finish(){
 }
 $('#quit').onclick=()=>{if(QZ){if(!QZ.quitArm){QZ.quitArm=true;toast('Tap × again to end the quiz now. Unanswered questions count as wrong.');setTimeout(()=>{if(QZ)QZ.quitArm=false},4000);return}clearInterval(QZ.timer);while(QZ.ans.length<QZ.items.length)QZ.ans.push({pick:null,ok:false,time:0,timeout:false});QZ.i=QZ.items.length;qFinish();return}
   stopTimer();if(R&&R.closed){backToLive();return}
-  const t=R&&R.steps[0]&&R.steps[0].t;if(R){accrue();credit();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome()};
+  const t=R&&R.steps[0]&&R.steps[0].t,kept=!!(R&&R.topic&&livePos()>0);if(R){accrue();credit();snapRun();save()}R=null;if(t&&t.sub)renderSubj(t.sub.id);else goHome();
+  if(kept)toast('Saved. Tap the topic to continue where you stopped.')};
+
+/* ---------- unfinished lessons ----------
+   A lesson started from a topic is saved in S.runs[topic id] after every step, when × is tapped and when the app is closed,
+   so the student can carry on from there later (on any device). Tapping the topic offers Continue or Start fresh.
+   Only finished lessons record answers, XP and review timing, as before. A saved lesson is dropped when it finishes,
+   when a new one starts on that topic, or when its content has changed. */
+const RUNF=['k','again','shown','practice','rev','retry','ans','ord','el','txt','d'];
+function snapRun(){if(!R||!R.topic||R.closed)return;
+  const steps=R.steps.map(s=>{const o={t:s.t.id,f:s.f.id};if(s.q)o.qi=s.f.q.indexOf(s.q);RUNF.forEach(k=>{if(s[k]!=null&&s[k]!==false)o[k]=s[k]});return o});
+  S.runs=S.runs||{};S.runs[R.topic]={at:Date.now(),i:R.i,steps,c:{combo:R.combo,best:R.best,ok:R.ok,n:R.n,xp:R.xp,late:R.late,wrong:[...R.wrong],seen:[...R.seen],tops:[...R.tops],times:R.times,tm:R.tm,fresh:R.fresh}};
+  Object.keys(S.runs).sort((a,b)=>S.runs[b].at-S.runs[a].at).slice(10).forEach(k=>delete S.runs[k])}
+function getRun(id){const r=S.runs&&S.runs[id];if(!r)return null;
+  try{const steps=r.steps.map(o=>{const t=byId(o.t),ps=String(o.f).split(':'),f=t&&facts(t,+ps[ps.length-2]).find(x=>x.id===o.f);if(!f)throw 0;
+      const s={t,f};RUNF.forEach(k=>{if(k in o)s[k]=o[k]});if(o.qi!=null){s.q=f.q&&f.q[o.qi];if(!s.q)throw 0}return s});
+    const i=r.i+(steps[r.i]&&steps[r.i].ans?1:0);
+    if(i>0&&i<steps.length)return{steps,i,c:r.c||{}}}catch(e){}
+  delete S.runs[id];save();return null}   // nothing done yet, already over, or the lesson's content changed
+function askResume(t,run){
+  const pct=Math.max(1,Math.min(99,Math.round(100*run.i/run.steps.length))),m=document.createElement('div');
+  m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-labelledby','rsh');
+  m.innerHTML=`<div class="mbox pop"><h3 id="rsh">Continue where you stopped?</h3><p>You're ${pct}% through a lesson on ${esc(t.title)}.</p><div class="two"><button class="btn ghost" id="rsnew">Start fresh</button><button class="btn blue" id="rsgo">Continue</button></div></div>`;
+  const close=()=>{m.remove();document.removeEventListener('keydown',esc_)},esc_=e=>{if(e.key==='Escape')close()};
+  document.body.append(m);document.addEventListener('keydown',esc_);m.onclick=e=>{if(e.target===m)close()};
+  $('#rsgo').onclick=()=>{close();resumeRun(t.id,run)};
+  $('#rsnew').onclick=()=>{close();delete S.runs[t.id];save();startTopic(t.id)};
+  $('#rsgo').focus()}
+function resumeRun(id,run){const c=run.c;S.cur=id;
+  R={steps:run.steps,topic:id,i:run.i,combo:c.combo||0,best:c.best||0,ok:c.ok||0,n:c.n||0,xp:c.xp||0,late:c.late||0,wrong:new Set(c.wrong||[]),seen:new Set(c.seen||[]),tops:new Set(c.tops||[]),times:c.times||[],tm:c.tm||{},lt:null,pi:run.i,v:null,closed:false,fresh:c.fresh!=null?!!c.fresh:run.steps.some(isFresh)};
+  show('lesson');step()}
 
 /* ---------- extra notes ----------
    A level can carry optional longer notes in Markdown (headings, lists, tables, bold and italic) with LaTeX maths.
@@ -2331,7 +2363,7 @@ async function startApp(session){
   if(LINKERR){history.replaceState(null,'',location.pathname);if(!data.session){renderAuth(/expired|invalid/i.test(LINKERR)?'That link has expired or was already used. Sign in, or request a new link.':LINKERR,'in');return}}
   if(recovering){started=true;history.replaceState(null,'',location.pathname);renderNewPw();return}
   if(data.session){if(!started){started=true;startApp(data.session)}}else renderAuth();
-  window.addEventListener('pagehide',()=>{if(UID)push()});
+  window.addEventListener('pagehide',()=>{if(R&&R.topic&&!R.closed){snapRun();save()}if(UID)push()});
 })();
 }
 </script>
