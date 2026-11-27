@@ -1135,19 +1135,22 @@ function step(){
   const kind=q.k==='tf'?'True or false?':q.k==='in'?'Type the answer':s.practice?'Practice question':'Choose the answer';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">${s.retry?'Second try · ':s.rev?'Review · ':''}${kind}<em>${d}</em></span><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}${body}</div>`;
   math($('#stage'));a.innerHTML='<button class="btn blue" id="chk" disabled>Check</button>';$('#chk').onclick=check;
-  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pick=b.dataset.v;$('#chk').disabled=false});
-  const inp=$('#ans');if(inp){inp.oninput=()=>$('#chk').disabled=!inp.value.trim();inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim())check()};inp.focus()}
+  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pick=b.dataset.v;if(T)T.pk=elapsed();$('#chk').disabled=false});
+  const inp=$('#ans');if(inp){inp.oninput=()=>{$('#chk').disabled=!inp.value.trim();if(T)T.pk=inp.value.trim()?elapsed():null};inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim())check()};inp.focus()}
   startTimer(tlim(d),s.el||0);
 }
 /* timer: limit → 5s big countdown → 30s grace (no XP) → "taking a while" popup */
-function startTimer(lim,off){off=off||0;T={t0:Date.now()-off*1000,lim,popped:off>=lim+30,id:setInterval(tick,200)};tick()}
+function startTimer(lim,off){off=off||0;T={t0:Date.now()-off*1000,lim,popped:off>=lim+30,pk:null,id:setInterval(tick,200)};tick()}
 function stopTimer(){if(T&&T.id){clearInterval(T.id);T.id=null}$('#cd').hidden=true;$('#modal').hidden=true}
 const elapsed=()=>T?(Date.now()-T.t0)/1000:0;
 function tick(){
   const left=T.lim-elapsed(),tm=$('#tmr'),cd=$('#cd');tm.hidden=false;
   const big=n=>{if(cd.dataset.n!==String(n)){cd.dataset.n=n;$('#cdn').textContent=n;cd.hidden=false;cd.classList.remove('beat');void cd.offsetWidth;cd.classList.add('beat')}};
   if(left>0){tm.className='tmr'+(left<=10?' low':'');tm.textContent=Math.ceil(left)+'s';if(left<=5)big(Math.ceil(left));else{cd.hidden=true;cd.dataset.n=''}}
-  else{if(left>-1)big(0);else cd.hidden=true;const g=Math.ceil(30+left);tm.className='tmr over';tm.textContent=g>0?`No XP · ${g}s`:'No XP';
+  else{
+    // An answer chosen (or typed) before the limit is submitted by itself, timed at the limit exactly.
+    if(T.pk!=null&&T.pk<=T.lim&&R&&R.v==null){const ch=$('#chk');if(ch&&!ch.disabled){cd.hidden=true;check(true);return}}
+    if(left>-1)big(0);else cd.hidden=true;const g=Math.ceil(30+left);tm.className='tmr over';tm.textContent=g>0?`No XP · ${g}s`:'No XP';
     if(left<=-30&&!T.popped){T.popped=true;$('#modal').hidden=false;$('#myes').focus()}}
 }
 $('#stopgen').onclick=()=>{STOP=true;$('#loadtxt').textContent='Stopping after this level…'};
@@ -1163,8 +1166,8 @@ function showSolution(){
   const a=$('#act');a.className='act bad';a.innerHTML=`<div class="fb"><h3>Study this one</h3><p style="margin:-4px 0 10px">No XP this time. It will come back for another try before the lesson ends.</p></div><button class="btn bad" id="nx">Continue</button>`;
   $('#nx').onclick=()=>{R.i++;step()};
 }
-function check(){
-  const s=R.steps[R.i],q=s.q,e=elapsed(),inTime=e<=T.lim;stopTimer();let ok=false,note='';
+function check(auto){
+  const s=R.steps[R.i],q=s.q,e=auto?T.lim:elapsed(),inTime=e<=T.lim;stopTimer();let ok=false,note='';
   if(q.k==='mc')ok=+pick===q.a;
   else if(q.k==='tf')ok=(pick==='1')===!!q.a;
   else{const v=norm($('#ans').value),acc=q.a.map(norm);ok=acc.includes(v);if(!ok&&acc.some(x=>x.length>4&&lev(x,v)<=1)){ok=true;note='Close enough. Watch the spelling: '+q.a[0]}$('#ans').disabled=true}
@@ -1989,14 +1992,14 @@ function startQuiz(id,items){
 }
 function qStep(){
   const it=QZ.items[QZ.i];setFlag(null);if(!it)return qFinish();
-  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.cc=carry;QZ.lim=base+carry;QZ.t0=Date.now()-(QZ.el0||0)*1000;QZ.el0=0;QZ.pick=null;quizSnap();save();
+  const d=diffOf(it.q,it.f,QZ.t),base=tlim(d),carry=Math.floor(QZ.carry);QZ.carry=0;QZ.cc=carry;QZ.lim=base+carry;QZ.t0=Date.now()-(QZ.el0||0)*1000;QZ.el0=0;QZ.pick=null;QZ.pkAt=null;quizSnap();save();
   $('#lbar').style.width=Math.round(100*QZ.i/QZ.items.length)+'%';$('#combo').textContent=`${QZ.i+1} of ${QZ.items.length}`;
   const q=it.q,opts=q.k==='mc'?it.order.map(i=>`<button class="opt" data-v="${i}">${esc(q.o[i])}</button>`).join(''):'<button class="opt" data-v="1">True</button><button class="opt" data-v="0">False</button>';
   $('#stage').innerHTML=`<div class="pop"><span class="kind">Topic quiz · Question ${QZ.i+1} of ${QZ.items.length}<em>${d}</em>${it.pq?'<em>Past question</em>':''}</span><p class="help" style="margin:4px 0 0">${base}s${carry?` + ${carry}s carried over`:''}</p><p class="qp">${esc(q.p)}</p>${figHtml(q.img)}<div class="opts${q.k==='tf'?' tfrow':''}">${opts}</div></div>`;
   math($('#stage'));
   const a=$('#act');a.className='act';a.innerHTML=`<button class="btn blue" id="qnext">${QZ.i+1<QZ.items.length?'Skip':'Skip and finish'}</button>`;
   const setBtn=()=>{$('#qnext').textContent=QZ.pick==null?(QZ.i+1<QZ.items.length?'Skip':'Skip and finish'):(QZ.i+1<QZ.items.length?'Next':'Finish quiz')};
-  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');QZ.pick=b.dataset.v;setBtn()});
+  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{$('#stage').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');QZ.pick=b.dataset.v;QZ.pkAt=(Date.now()-QZ.t0)/1000;setBtn()});
   $('#qnext').onclick=()=>qNext(false);
   clearInterval(QZ.timer);QZ.timer=setInterval(qTick,200);qTick();
 }
@@ -2025,7 +2028,7 @@ function qTick(){
 }
 function qNext(timeout){
   if(!QZ)return;clearInterval(QZ.timer);$('#cd').hidden=true;$('#cd').dataset.n='';
-  const it=QZ.items[QZ.i],el=Math.min(QZ.lim,(Date.now()-QZ.t0)/1000),pick=timeout?null:QZ.pick;
+  const it=QZ.items[QZ.i],el=Math.min(QZ.lim,(Date.now()-QZ.t0)/1000),pick=timeout&&!(QZ.pkAt<=QZ.lim)?null:QZ.pick;
   const ok=pick!=null&&(it.q.k==='mc'?+pick===it.q.a:(pick==='1')===!!it.q.a);
   QZ.ans.push({pick,ok,time:el,timeout:timeout&&QZ.pick==null});
   QZ.carry=timeout?0:Math.max(0,QZ.lim-el);QZ.i++;qStep();
